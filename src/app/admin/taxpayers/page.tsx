@@ -1,67 +1,112 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { useApp } from '@/contexts/AppContext';
-import { Taxpayer } from '@/types';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 
+interface User {
+  _id: string;
+  name: string;
+  username: string;
+  businessName: string;
+  ward: string;
+  role: string;
+}
+
 export default function TaxpayersPage() {
-  const { state, addTaxpayer, updateTaxpayer, deleteTaxpayer } = useApp();
+  const [users, setUsers] = useState<User[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingTaxpayer, setEditingTaxpayer] = useState<Taxpayer | null>(null);
-  const [viewingTaxpayer, setViewingTaxpayer] = useState<Taxpayer | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    phone: '',
-    address: '',
-    profession: ''
+    username: '',
+    password: '',
+    businessName: '',
+    ward: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      profession: ''
-    });
-    setEditingTaxpayer(null);
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (editingTaxpayer) {
-      updateTaxpayer(editingTaxpayer.id, formData);
-    } else {
-      addTaxpayer({
-        ...formData,
-        registrationDate: new Date().toISOString().split('T')[0]
-      });
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
-    
-    resetForm();
-    setShowModal(false);
   };
 
-  const handleEdit = (taxpayer: Taxpayer) => {
-    setEditingTaxpayer(taxpayer);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowModal(false);
+        resetForm();
+        await fetchUsers();
+      } else {
+        setError(data.message || 'Failed to create taxpayer');
+      }
+    } catch (error) {
+      setError('Server error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
     setFormData({
-      name: taxpayer.name,
-      email: taxpayer.email,
-      phone: taxpayer.phone,
-      address: taxpayer.address,
-      profession: taxpayer.profession
+      name: user.name,
+      username: user.username,
+      password: '',
+      businessName: user.businessName,
+      ward: user.ward
     });
     setShowModal(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleView = (user: User) => {
+    setViewingUser(user);
+  };
+
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this taxpayer?')) {
-      deleteTaxpayer(id);
+      // Note: Delete API not implemented yet
+      console.log('Delete functionality not implemented');
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      username: '',
+      password: '',
+      businessName: '',
+      ward: ''
+    });
+    setEditingUser(null);
+    setError('');
   };
 
   return (
@@ -76,153 +121,176 @@ export default function TaxpayersPage() {
             }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" />
             Add Taxpayer
           </button>
         </div>
 
-        {/* Taxpayers Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Profession
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Registration Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {state.taxpayers.map((taxpayer) => (
-                <tr key={taxpayer.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {taxpayer.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {taxpayer.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {taxpayer.phone}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {taxpayer.profession}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(taxpayer.registrationDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
+        {/* Users Table */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Registered Taxpayers</h3>
+          </div>
+          <div className="overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Username
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Business Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ward
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr key={user._id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {user.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.username}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.businessName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.ward}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => setViewingTaxpayer(taxpayer)}
-                        className="text-blue-600 hover:text-blue-900"
+                        onClick={() => handleView(user)}
+                        className="text-indigo-600 hover:text-indigo-900 mr-3"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleEdit(taxpayer)}
-                        className="text-green-600 hover:text-green-900"
+                        onClick={() => handleEdit(user)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(taxpayer.id)}
+                        onClick={() => handleDelete(user._id)}
                         className="text-red-600 hover:text-red-900"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Add/Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {editingTaxpayer ? 'Edit Taxpayer' : 'Add New Taxpayer'}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                {editingUser ? 'Edit Taxpayer' : 'Add New Taxpayer'}
               </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
+              
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      required={!editingUser}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder={editingUser ? 'Leave blank to keep current password' : ''}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Business Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.businessName}
+                      onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ward
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.ward}
+                      onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
-                  <textarea
-                    required
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    rows={2}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Profession</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.profession}
-                    onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
+
+                {error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="mt-6 flex space-x-3">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isLoading ? 'Saving...' : (editingUser ? 'Update' : 'Create')}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                   >
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    {editingTaxpayer ? 'Update' : 'Add'}
                   </button>
                 </div>
               </form>
@@ -231,34 +299,38 @@ export default function TaxpayersPage() {
         )}
 
         {/* View Modal */}
-        {viewingTaxpayer && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Taxpayer Details</h3>
+        {viewingUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Taxpayer Details</h3>
+              
               <div className="space-y-3">
                 <div>
-                  <span className="font-medium">Name:</span> {viewingTaxpayer.name}
+                  <span className="text-sm text-gray-500">Name:</span>
+                  <p className="font-medium">{viewingUser.name}</p>
                 </div>
                 <div>
-                  <span className="font-medium">Email:</span> {viewingTaxpayer.email}
+                  <span className="text-sm text-gray-500">Username:</span>
+                  <p className="font-medium">{viewingUser.username}</p>
                 </div>
                 <div>
-                  <span className="font-medium">Phone:</span> {viewingTaxpayer.phone}
+                  <span className="text-sm text-gray-500">Business Name:</span>
+                  <p className="font-medium">{viewingUser.businessName}</p>
                 </div>
                 <div>
-                  <span className="font-medium">Address:</span> {viewingTaxpayer.address}
+                  <span className="text-sm text-gray-500">Ward:</span>
+                  <p className="font-medium">{viewingUser.ward}</p>
                 </div>
                 <div>
-                  <span className="font-medium">Profession:</span> {viewingTaxpayer.profession}
-                </div>
-                <div>
-                  <span className="font-medium">Registration Date:</span> {new Date(viewingTaxpayer.registrationDate).toLocaleDateString()}
+                  <span className="text-sm text-gray-500">Role:</span>
+                  <p className="font-medium capitalize">{viewingUser.role}</p>
                 </div>
               </div>
-              <div className="flex justify-end mt-6">
+
+              <div className="mt-6">
                 <button
-                  onClick={() => setViewingTaxpayer(null)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setViewingUser(null)}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Close
                 </button>
