@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Layout from '@/components/Layout/Layout';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { useApp } from '@/contexts/AppContext';
 import { Taxpayer } from '@/types';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -65,7 +65,7 @@ export default function TaxpayersPage() {
   };
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Taxpayer Management</h1>
@@ -267,6 +267,6 @@ export default function TaxpayersPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

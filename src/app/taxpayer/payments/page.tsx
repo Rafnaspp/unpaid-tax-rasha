@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Layout from '@/components/Layout/Layout';
+import TaxpayerLayout from '@/components/Layout/TaxpayerLayout';
 import { useApp } from '@/contexts/AppContext';
 import { FileText, Download } from 'lucide-react';
 
@@ -82,7 +82,7 @@ Website: www.proftax.example.com
   const totalPaid = taxpayerPayments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <Layout>
+    <TaxpayerLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
@@ -214,6 +214,6 @@ Website: www.proftax.example.com
           </div>
         </div>
       </div>
-    </Layout>
+    </TaxpayerLayout>
   );
 }

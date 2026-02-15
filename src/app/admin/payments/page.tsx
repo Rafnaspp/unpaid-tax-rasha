@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Layout from '@/components/Layout/Layout';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { useApp } from '@/contexts/AppContext';
 import { CreditCard, DollarSign, FileText } from 'lucide-react';
 
@@ -71,7 +71,7 @@ export default function PaymentsPage() {
   const unpaidAssessments = state.assessments.filter(a => a.balance > 0);
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">Payment Management</h1>
 
@@ -311,6 +311,6 @@ export default function PaymentsPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

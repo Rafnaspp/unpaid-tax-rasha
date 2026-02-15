@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Layout from '@/components/Layout/Layout';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { useApp } from '@/contexts/AppContext';
 import { Bell, Download, AlertTriangle } from 'lucide-react';
 
@@ -121,7 +121,7 @@ This is an automated reminder. Please disregard if payment has already been made
   };
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Unpaid & Overdue Assessments</h1>
@@ -321,6 +321,6 @@ This is an automated reminder. Please disregard if payment has already been made
           </div>
         )}
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

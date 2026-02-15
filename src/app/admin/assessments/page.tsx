@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Layout from '@/components/Layout/Layout';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { useApp } from '@/contexts/AppContext';
 import { Assessment } from '@/types';
 import { Plus, Edit, Trash2, Calculator } from 'lucide-react';
@@ -93,7 +93,7 @@ export default function AssessmentsPage() {
   };
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Assessment Management</h1>
@@ -259,6 +259,6 @@ export default function AssessmentsPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

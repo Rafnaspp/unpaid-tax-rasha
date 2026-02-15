@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Layout from '@/components/Layout/Layout';
+import TaxpayerLayout from '@/components/Layout/TaxpayerLayout';
 import { useApp } from '@/contexts/AppContext';
 import { CreditCard, DollarSign } from 'lucide-react';
 
@@ -92,7 +92,7 @@ export default function TaxpayerAssessmentsPage() {
   };
 
   return (
-    <Layout>
+    <TaxpayerLayout>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">My Assessments</h1>
 
@@ -311,6 +311,6 @@ export default function TaxpayerAssessmentsPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </TaxpayerLayout>
   );
 }

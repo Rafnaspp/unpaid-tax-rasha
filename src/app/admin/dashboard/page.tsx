@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
-import Layout from '@/components/Layout/Layout';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import {
   DollarSign,
   Users,
@@ -41,60 +41,60 @@ export default function AdminDashboard() {
   };
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="space-y-6">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
-                <DollarSign className="h-6 w-6 text-blue-600" />
+              <div className="flex-shrink-0 bg-blue-100 p-2">
+                <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Assessed</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="ml-3">
+                <p className="text-xs font-medium text-slate-600">Total Assessed</p>
+                <p className="text-lg font-semibold text-slate-900">
                   ${totalAssessed.toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white border border-slate-200 p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+              <div className="flex-shrink-0 bg-green-100 p-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Collected</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="ml-3">
+                <p className="text-xs font-medium text-slate-600">Total Collected</p>
+                <p className="text-lg font-semibold text-slate-900">
                   ${totalCollected.toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white border border-slate-200 p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-red-100 rounded-lg p-3">
-                <AlertCircle className="h-6 w-6 text-red-600" />
+              <div className="flex-shrink-0 bg-red-100 p-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Unpaid</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="ml-3">
+                <p className="text-xs font-medium text-slate-600">Total Unpaid</p>
+                <p className="text-lg font-semibold text-slate-900">
                   ${totalUnpaid.toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white border border-slate-200 p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-purple-100 rounded-lg p-3">
-                <Users className="h-6 w-6 text-purple-600" />
+              <div className="flex-shrink-0 bg-slate-100 p-2">
+                <Users className="h-5 w-5 text-slate-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Taxpayers</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="ml-3">
+                <p className="text-xs font-medium text-slate-600">Total Taxpayers</p>
+                <p className="text-lg font-semibold text-slate-900">
                   {totalTaxpayers}
                 </p>
               </div>
@@ -104,43 +104,43 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Payments */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Recent Payments</h3>
+          <div className="bg-white border border-slate-200">
+            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+              <h3 className="text-sm font-medium text-slate-900">Recent Payments</h3>
             </div>
             <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Taxpayer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Receipt
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {recentPayments.map((payment) => {
                     const assessment = getAssessmentDetails(payment.assessmentId);
                     return (
                       <tr key={payment.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-900">
                           {getTaxpayerName(assessment?.taxpayerId || '')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-900">
                           ${payment.amount.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-500">
                           {new Date(payment.paymentDate).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                        <td className="px-4 py-2 whitespace-nowrap text-xs text-blue-600">
                           {payment.receiptNumber}
                         </td>
                       </tr>
@@ -152,43 +152,43 @@ export default function AdminDashboard() {
           </div>
 
           {/* Overdue Assessments */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Overdue Assessments</h3>
+          <div className="bg-white border border-slate-200">
+            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+              <h3 className="text-sm font-medium text-slate-900">Overdue Assessments</h3>
             </div>
             <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Taxpayer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Balance
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Due Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {overdueAssessments.map((assessment) => (
                     <tr key={assessment.id} className="bg-red-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-900">
                         {getTaxpayerName(assessment.taxpayerId)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
+                      <td className="px-4 py-2 whitespace-nowrap text-xs font-medium text-red-600">
                         ${assessment.balance.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-500">
                         {new Date(assessment.dueDate).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                          Overdue
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold bg-red-100 text-red-800">
+                          OVERDUE
                         </span>
                       </td>
                     </tr>
@@ -199,6 +199,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

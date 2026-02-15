@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Layout from '@/components/Layout/Layout';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { useApp } from '@/contexts/AppContext';
 import { Bell, Mail, CheckCircle } from 'lucide-react';
 
@@ -40,7 +40,7 @@ export default function RemindersPage() {
   };
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Reminder Management</h1>
@@ -192,6 +192,6 @@ export default function RemindersPage() {
           </div>
         </div>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }
