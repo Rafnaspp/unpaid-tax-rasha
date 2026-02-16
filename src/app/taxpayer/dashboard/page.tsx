@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import TaxpayerLayout from '@/components/Layout/TaxpayerLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  DollarSign,
   FileText,
   Calendar,
   TrendingUp,
@@ -156,7 +155,7 @@ export default function TaxpayerDashboard() {
         <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-xl p-8 text-white">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold mb-2">${totalUnpaid.toLocaleString()}</div>
+              <div className="text-4xl font-bold mb-2">₹{totalUnpaid.toLocaleString()}</div>
               <div className="text-teal-100">Total Outstanding</div>
             </div>
             <div className="text-center">
@@ -179,11 +178,11 @@ export default function TaxpayerDashboard() {
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Total Assessed</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  ${totalAssessed.toLocaleString()}
+                  ₹{totalAssessed.toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-blue-600" />
+
               </div>
             </div>
           </div>
@@ -193,7 +192,7 @@ export default function TaxpayerDashboard() {
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Total Paid</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  ${totalPaid.toLocaleString()}
+                  ₹{totalPaid.toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
@@ -230,16 +229,15 @@ export default function TaxpayerDashboard() {
                     <div key={assessment._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                       <div>
                         <p className="font-medium text-slate-900">{assessment.financialYear}</p>
-                        <p className="text-sm text-slate-600">Balance: ${(assessment.balance || 0).toLocaleString()}</p>
+                        <p className="text-sm text-slate-600">Balance: ₹{(assessment.balance || 0).toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          assessment.status === 'paid' ? 'bg-green-100 text-green-800' :
-                          assessment.status === 'partially_paid' ? 'bg-amber-100 text-amber-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${assessment.status === 'paid' ? 'bg-green-100 text-green-800' :
+                            assessment.status === 'partially_paid' ? 'bg-amber-100 text-amber-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
                           {assessment.status === 'paid' ? 'Paid' :
-                           assessment.status === 'partially_paid' ? 'Partially Paid' : 'Unpaid'}
+                            assessment.status === 'partially_paid' ? 'Partially Paid' : 'Unpaid'}
                         </span>
                         {(assessment.balance || 0) > 0 && (
                           <button className="mt-2 w-full px-3 py-1 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors">
@@ -273,7 +271,7 @@ export default function TaxpayerDashboard() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-slate-900">${(payment.amount || 0).toLocaleString()}</p>
+                        <p className="font-bold text-slate-900">₹{(payment.amount || 0).toLocaleString()}</p>
                         <p className="text-xs text-slate-500 capitalize">{payment.mode || 'N/A'}</p>
                       </div>
                     </div>
@@ -294,7 +292,7 @@ export default function TaxpayerDashboard() {
               <div>
                 <h3 className="text-xl font-bold mb-2">Payment Overdue</h3>
                 <p className="text-red-100">
-                  You have {overdueAssessments.length} overdue assessment(s) totaling ${overdueAssessments.reduce((sum: number, a: Assessment) => sum + (a?.balance || 0), 0).toLocaleString()}
+                  You have {overdueAssessments.length} overdue assessment(s) totaling {overdueAssessments.reduce((sum: number, a: Assessment) => sum + (a?.balance || 0), 0).toLocaleString()}
                 </p>
                 <p className="text-red-200 text-sm mt-2">
                   Please make your payment as soon as possible to avoid penalties.

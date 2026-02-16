@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { DollarSign, CreditCard, Receipt } from 'lucide-react';
+import {  CreditCard, Receipt } from 'lucide-react';
 
 interface Payment {
   _id: string;
@@ -117,11 +117,11 @@ export default function PaymentsPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-                <DollarSign className="h-6 w-6 text-green-600" />
+               
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Collected</p>
-                <p className="text-2xl font-bold text-gray-900">${totalCollected.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">{totalCollected.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function PaymentsPage() {
                         {payment.assessmentId?.financialYear || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(payment.amount || 0).toLocaleString()}
+                        {(payment.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${

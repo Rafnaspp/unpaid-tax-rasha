@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import TaxpayerLayout from '@/components/Layout/TaxpayerLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { CreditCard, DollarSign } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { createOrder, createRazorpayPayment, verifyPayment } from '@/utils/razorpay';
 
 interface Assessment {
@@ -146,11 +146,11 @@ export default function TaxpayerAssessmentsPage() {
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Total Assessed</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  ${assessments.reduce((sum, a) => sum + a.amount, 0).toLocaleString()}
+                  ₹{assessments.reduce((sum, a) => sum + a.amount, 0).toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-blue-600" />
+                
               </div>
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function TaxpayerAssessmentsPage() {
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Total Paid</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  ${assessments.reduce((sum, a) => sum + a.paidAmount, 0).toLocaleString()}
+                  ₹{assessments.reduce((sum, a) => sum + a.paidAmount, 0).toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
@@ -174,11 +174,11 @@ export default function TaxpayerAssessmentsPage() {
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Outstanding Balance</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  ${assessments.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
+                  ₹{assessments.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-red-600" />
+                
               </div>
             </div>
           </div>
@@ -226,13 +226,13 @@ export default function TaxpayerAssessmentsPage() {
                       {assessment.slabName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                      ${assessment.amount.toLocaleString()}
+                      ₹{assessment.amount.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                      ${assessment.paidAmount.toLocaleString()}
+                      ₹{assessment.paidAmount.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                      ${assessment.balance.toLocaleString()}
+                      ₹{assessment.balance.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(assessment.status)}`}>
@@ -273,7 +273,7 @@ export default function TaxpayerAssessmentsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-slate-600">Outstanding Balance</p>
-                  <p className="font-medium text-slate-900">${selectedAssessment.balance.toLocaleString()}</p>
+                  <p className="font-medium text-slate-900">₹{selectedAssessment.balance.toLocaleString()}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -328,7 +328,7 @@ export default function TaxpayerAssessmentsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Amount Paid:</span>
-                  <span className="font-medium">${receiptData.amount.toLocaleString()}</span>
+                  <span className="font-medium">₹{receiptData.amount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Payment Date:</span>

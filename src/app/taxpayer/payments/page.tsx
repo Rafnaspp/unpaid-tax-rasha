@@ -77,7 +77,7 @@ Business: ${userInfo?.businessName || 'N/A'}
 
 Payment Details:
 - Assessment: ${payment.assessmentId?.financialYear || 'N/A'}
-- Amount Paid: $${(payment.amount || 0).toLocaleString()}
+- Amount Paid: ₹${(payment.amount || 0).toLocaleString()}
 - Payment Method: ${payment.mode || 'N/A'}
 
 Payment Status: COMPLETED
@@ -147,7 +147,7 @@ Website: www.proftax.example.com
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
           <div className="text-sm text-gray-600">
-            Total Paid: <span className="text-lg font-semibold text-gray-900">${totalPaid.toLocaleString()}</span>
+            Total Paid: <span className="text-lg font-semibold text-gray-900">₹{totalPaid.toLocaleString()}</span>
           </div>
         </div>
 
@@ -207,7 +207,7 @@ Website: www.proftax.example.com
                       {payment.assessmentId?.financialYear || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${(payment.amount || 0).toLocaleString()}
+                      ₹{(payment.amount || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
@@ -253,7 +253,7 @@ Website: www.proftax.example.com
                   return (
                     <div key={method} className="flex justify-between text-sm">
                       <span className="text-gray-600 capitalize">{method.replace('_', ' ')}:</span>
-                      <span className="font-medium">${methodTotal.toLocaleString()} ({methodPayments.length})</span>
+                      <span className="font-medium">₹{methodTotal.toLocaleString()} ({methodPayments.length})</span>
                     </div>
                   );
                 })}
@@ -276,7 +276,7 @@ Website: www.proftax.example.com
                         <span className="text-gray-900">#{payment.receiptNumber}</span>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">${(payment.amount || 0).toLocaleString()}</div>
+                        <div className="font-medium">₹{(payment.amount || 0).toLocaleString()}</div>
                         <div className="text-gray-500">
                           {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
                         </div>

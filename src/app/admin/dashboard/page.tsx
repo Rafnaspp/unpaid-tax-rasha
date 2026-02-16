@@ -1,47 +1,96 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useApp } from '@/contexts/AppContext';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, TrendingUp, AlertCircle } from 'lucide-react';
+
+interface DashboardStats {
+  totalTaxpayers: number;
+  totalAssessments: number;
+  totalCollected: number;
+  totalUnpaid: number;
+}
 
 export default function AdminDashboard() {
-  const { state } = useApp();
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalTaxpayers: 0,
+    totalAssessments: 0,
+    totalCollected: 0,
+    totalUnpaid: 0
+  });
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [overdueAssessments, setOverdueAssessments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Safe data access with fallbacks
-  const assessments = state?.assessments || [];
-  const taxpayers = state?.taxpayers || [];
-  const payments = state?.payments || [];
-  const reminders = state?.reminders || [];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  // Safe calculations with fallbacks
-  const totalAssessed = assessments.reduce(
-    (sum, a) => sum + (a?.amount || 0),
-    0
-  );
-  const totalCollected = assessments.reduce(
-    (sum, a) => sum + (a?.paidAmount || 0),
-    0
-  );
-  const totalUnpaid = assessments.reduce(
-    (sum, a) => sum + (a?.balance || 0),
-    0
-  );
-  const totalTaxpayers = taxpayers.length;
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
 
-  // Safe filtering with fallbacks
-  const recentPayments = payments
-    .filter(p => p?.paymentDate)
-    .slice(-5)
-    .reverse();
+      // Fetch all data in parallel
+      const [taxpayersRes, assessmentsRes, paymentsRes] = await Promise.all([
+        fetch('/api/admin/taxpayers'),
+        fetch('/api/admin/assessments'),
+        fetch('/api/admin/payments')
+      ]);
 
-  const overdueAssessments = assessments.filter(
-    a => a?.status === 'unpaid' && a?.dueDate && new Date(a.dueDate) < new Date()
-  );
+      const taxpayersData = await taxpayersRes.json();
+      const assessmentsData = await assessmentsRes.json();
+      const paymentsData = await paymentsRes.json();
+
+      const taxpayers = taxpayersData.taxpayers || [];
+      const assessments = assessmentsData.assessments || [];
+      const payments = paymentsData.payments || [];
+
+      // Calculate statistics
+      const totalTaxpayers = taxpayers.length;
+      const totalAssessments = assessments.length;
+      const totalCollected = payments.reduce(
+        (sum: number, payment: any) => sum + (payment?.amount || 0),
+        0
+      );
+      const totalUnpaid = assessments.reduce(
+        (sum: number, assessment: any) => sum + (assessment?.balance || 0),
+        0
+      );
+
+      setStats({
+        totalTaxpayers,
+        totalAssessments,
+        totalCollected,
+        totalUnpaid
+      });
+
+      // Set recent payments (last 5)
+      const recent = payments
+        .filter((p: any) => p?.paymentDate)
+        .sort((a: any, b: any) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+        .slice(0, 5);
+      setRecentPayments(recent);
+
+      // Set overdue assessments
+      const overdue = assessments.filter(
+        (assessment: any) => 
+          assessment?.status === 'unpaid' && 
+          assessment?.dueDate && 
+          new Date(assessment.dueDate) < new Date()
+      );
+      setOverdueAssessments(overdue);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Loading state
-  if (state?.loading) {
+  if (loading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
@@ -65,7 +114,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Taxpayers</p>
-                <p className="text-2xl font-bold text-gray-900">{totalTaxpayers}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalTaxpayers}</p>
               </div>
             </div>
           </div>
@@ -73,11 +122,11 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Assessed</p>
-                <p className="text-2xl font-bold text-gray-900">${totalAssessed.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Total Assessments</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalAssessments}</p>
               </div>
             </div>
           </div>
@@ -89,7 +138,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Collected</p>
-                <p className="text-2xl font-bold text-gray-900">${totalCollected.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">₹{stats.totalCollected.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -101,7 +150,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Outstanding</p>
-                <p className="text-2xl font-bold text-gray-900">${totalUnpaid.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">₹{stats.totalUnpaid.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -127,7 +176,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        ${payment.amount?.toLocaleString() || 0}
+                        {payment.amount?.toLocaleString() || 0}
                       </p>
                       <p className="text-sm text-gray-500 capitalize">{payment.mode}</p>
                     </div>
@@ -160,7 +209,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-red-600">
-                        ${assessment.balance?.toLocaleString() || 0}
+                        {assessment.balance?.toLocaleString() || 0}
                       </p>
                       <p className="text-sm text-gray-500 capitalize">{assessment.status}</p>
                     </div>

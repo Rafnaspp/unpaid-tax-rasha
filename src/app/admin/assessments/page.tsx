@@ -227,13 +227,13 @@ export default function AssessmentsPage() {
                         {assessment.slabName}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(assessment.amount || 0).toLocaleString()}
+                        {(assessment.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(assessment.paidAmount || 0).toLocaleString()}
+                        {(assessment.paidAmount || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(assessment.balance || 0).toLocaleString()}
+                        {(assessment.balance || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(assessment.dueDate).toLocaleDateString()}

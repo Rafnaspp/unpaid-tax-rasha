@@ -292,7 +292,7 @@ export default function RemindersPage() {
                         .filter(a => a.taxpayerId === formData.taxpayerId)
                         .map((assessment) => (
                           <option key={assessment._id} value={assessment._id}>
-                            {assessment.financialYear} - ${assessment.amount}
+                            {assessment.financialYear} - {assessment.amount}
                           </option>
                         ))}
                     </select>
