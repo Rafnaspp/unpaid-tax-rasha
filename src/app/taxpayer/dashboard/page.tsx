@@ -19,7 +19,7 @@ interface Assessment {
   paidAmount: number;
   balance: number;
   dueDate: string;
-  status: 'unpaid' | 'partially_paid' | 'paid';
+  status: 'unpaid' | 'partially_paid' | 'Paid';
 }
 
 interface Payment {
@@ -232,11 +232,11 @@ export default function TaxpayerDashboard() {
                         <p className="text-sm text-slate-600">Balance: ₹{(assessment.balance || 0).toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${assessment.status === 'paid' ? 'bg-green-100 text-green-800' :
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${assessment.status === 'Paid' ? 'bg-green-100 text-green-800' :
                             assessment.status === 'partially_paid' ? 'bg-amber-100 text-amber-800' :
                               'bg-red-100 text-red-800'
                           }`}>
-                          {assessment.status === 'paid' ? 'Paid' :
+                          {assessment.status === 'Paid' ? 'Paid' :
                             assessment.status === 'partially_paid' ? 'Partially Paid' : 'Unpaid'}
                         </span>
                         {(assessment.balance || 0) > 0 && (

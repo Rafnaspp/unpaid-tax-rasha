@@ -2,14 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  BarChart3,
+  // BarChart3,
   Users,
   FileText,
   CreditCard,
-  Bell,
+  // Bell,
   LogOut,
   Home
 } from 'lucide-react';
@@ -21,6 +21,7 @@ interface AdminLayoutProps {
 const AdminSidebar = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const menuItems = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
@@ -42,16 +43,15 @@ const AdminSidebar = () => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center px-6 py-3 transition-colors ${
-                isActive
+              className={`flex items-center px-6 py-3 transition-colors ${isActive
                   ? 'bg-blue-600 text-white border-l-4 border-blue-400'
                   : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
+                }`}
             >
               <Icon className="w-4 h-4 mr-3" />
               <span className="text-sm font-medium">{item.label}</span>
@@ -66,7 +66,10 @@ const AdminSidebar = () => {
           <p className="text-xs text-slate-400 uppercase tracking-wide">{user?.role}</p>
         </div>
         <button
-          onClick={logout}
+          onClick={() => {
+            logout();
+            router.push('/admin/login');
+          }}
           className="flex items-center w-full px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded transition-colors text-sm"
         >
           <LogOut className="w-4 h-4 mr-2" />
@@ -94,11 +97,11 @@ const AdminHeader = () => {
           </div>
           <div className="text-right">
             <p className="text-sm text-slate-500">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </p>
             <p className="text-xs text-slate-400 mt-1">System Time</p>

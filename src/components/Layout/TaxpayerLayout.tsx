@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Home,
@@ -19,6 +19,7 @@ interface TaxpayerLayoutProps {
 const TaxpayerHeader = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+   const router = useRouter();
 
   const menuItems = [
     { href: '/taxpayer/dashboard', label: 'Dashboard', icon: Home },
@@ -69,7 +70,10 @@ const TaxpayerHeader = () => {
               </div>
             </div>
             <button
-              onClick={logout}
+              onClick={()=>{
+                logout();
+                router.push('/');
+              }}
               className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             >
               <LogOut className="w-4 h-4 mr-1" />

@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 interface Assessment {
   _id: string;
   taxpayerId: string;
+  taxpayerName: string;
   financialYear: string;
   slabName: string;
   amount: number;
@@ -185,7 +186,7 @@ export default function AssessmentsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Taxpayer
+                    Taxpayer Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Financial Year
@@ -218,7 +219,7 @@ export default function AssessmentsPage() {
                   assessments.map((assessment) => (
                     <tr key={assessment._id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {getUserName(assessment.taxpayerId)}
+                        {assessment.taxpayerName || getUserName(assessment.taxpayerId)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {assessment.financialYear}

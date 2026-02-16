@@ -10,7 +10,8 @@ interface Assessment {
     _id: string;
     name: string;
     businessName: string;
-  } | null;
+  };
+  taxpayerName: string;
   financialYear: string;
   slabName: string;
   amount: number;
@@ -210,7 +211,7 @@ export default function UnpaidPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Taxpayer
+                    Taxpayer Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Financial Year
@@ -246,7 +247,7 @@ export default function UnpaidPage() {
                     return (
                       <tr key={assessment._id} className={isOverdue ? 'bg-red-50' : ''}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {assessment.taxpayerId?.name || 'Unknown'}
+                          {assessment.taxpayerName || assessment.taxpayerId?.name || 'Unknown'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {assessment.financialYear}

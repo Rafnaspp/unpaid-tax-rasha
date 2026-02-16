@@ -16,9 +16,14 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    // Get taxpayer name
+    const taxpayer = await User.findById(taxpayerId);
+    const taxpayerName = taxpayer?.name || 'Unknown';
+
     // Create new assessment with default values
     const assessment = new Assessment({
       taxpayerId,
+      taxpayerName,
       financialYear,
       slabName,
       amount,

@@ -6,6 +6,11 @@ const AssessmentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  taxpayerName: {
+    type: String,
+    required: true,
+    trim: true
+  },
   financialYear: {
     type: String,
     required: true,

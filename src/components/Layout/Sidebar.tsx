@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   BarChart3,
@@ -17,6 +17,7 @@ import {
 const Sidebar = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+   const router = useRouter();
 
   const adminMenuItems = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
@@ -71,7 +72,10 @@ const Sidebar = () => {
             <p className="text-xs text-gray-400">{user?.role}</p>
           </div>
           <button
-            onClick={logout}
+            onClick={()=>{
+              logout();
+              router.push('/admin/login');
+            }}
             className="flex items-center w-full px-4 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded transition-colors"
           >
             <LogOut className="w-4 h-4 mr-2" />
