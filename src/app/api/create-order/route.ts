@@ -4,8 +4,8 @@ import Assessment from '@/models/Assessment';
 import Razorpay from 'razorpay';
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
+  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_SGXNcfSszwWDa0",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "5gZe2BdBOsulRlVdPlB4w6nF",
 });
 
 export async function POST(request: NextRequest) {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const options = {
       amount: assessment.balance * 100, // Convert to paise
       currency: 'INR',
-      receipt: `order_${assessmentId}_${Date.now()}`,
+      receipt: `ORD_${Date.now()}`, // Shortened to under 40 chars
       notes: {
         assessmentId: assessmentId
       }

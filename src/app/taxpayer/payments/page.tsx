@@ -1,39 +1,84 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import TaxpayerLayout from '@/components/Layout/TaxpayerLayout';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Download } from 'lucide-react';
 
+interface Payment {
+  _id: string;
+  amount: number;
+  paymentDate: string;
+  mode: string;
+  receiptNumber: string;
+  assessmentId?: {
+    _id: string;
+    financialYear: string;
+    amount: number;
+  } | null;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  businessName: string;
+  ward: string;
+}
+
 export default function TaxpayerPaymentsPage() {
-  const { state } = useApp();
+  const { user } = useAuth();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [userInfo, setUserInfo] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // For demo purposes, we'll show data for the first taxpayer
-  const taxpayerId = '1'; // John Smith's ID
-  const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-  const taxpayerPayments = state.payments.filter(p => {
-    const assessment = state.assessments.find(a => a.id === p.assessmentId);
-    return assessment?.taxpayerId === taxpayerId;
-  });
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+    }
+  }, [user]);
 
-  const getAssessmentDetails = (assessmentId: string) => {
-    return state.assessments.find(a => a.id === assessmentId);
+  const fetchUserData = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Fetch user payments
+      const paymentsResponse = await fetch(`/api/user/payments?userId=${user?.id}`);
+      const paymentsData = await paymentsResponse.json();
+      if (paymentsData.success) {
+        setPayments(paymentsData.payments || []);
+      }
+
+      // Set user info from auth context
+      setUserInfo({
+        _id: user?.id || '',
+        name: user?.name || '',
+        businessName: user?.businessName || '',
+        ward: user?.ward || ''
+      });
+
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setError('Failed to load payment data');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const printReceipt = (payment: any) => {
-    const assessment = getAssessmentDetails(payment.assessmentId);
+  const printReceipt = (payment: Payment) => {
     const receiptContent = `
 PROFESSIONAL TAX PAYMENT RECEIPT
 
 Receipt Number: ${payment.receiptNumber}
-Payment Date: ${new Date(payment.paymentDate).toLocaleDateString()}
-Taxpayer: ${taxpayer?.name}
-Profession: ${taxpayer?.profession}
+Payment Date: ${payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
+Taxpayer: ${userInfo?.name || 'N/A'}
+Business: ${userInfo?.businessName || 'N/A'}
 
 Payment Details:
-- Assessment Year: ${assessment?.assessmentYear}
-- Amount Paid: $${payment.amount.toLocaleString()}
-- Payment Method: ${payment.method}
+- Assessment: ${payment.assessmentId?.financialYear || 'N/A'}
+- Amount Paid: $${(payment.amount || 0).toLocaleString()}
+- Payment Method: ${payment.mode || 'N/A'}
 
 Payment Status: COMPLETED
 Processing Date: ${new Date().toLocaleDateString()}
@@ -79,7 +124,22 @@ Website: www.proftax.example.com
     }
   };
 
-  const totalPaid = taxpayerPayments.reduce((sum, p) => sum + p.amount, 0);
+  // Safe calculations with fallbacks
+  const totalPaid = payments.reduce(
+    (sum: number, payment: Payment) => sum + (payment?.amount || 0),
+    0
+  );
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <TaxpayerLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading payments...</div>
+        </div>
+      </TaxpayerLayout>
+    );
+  }
 
   return (
     <TaxpayerLayout>
@@ -95,16 +155,16 @@ Website: www.proftax.example.com
         <div className="bg-white rounded-lg shadow p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{taxpayerPayments.length}</div>
+              <div className="text-3xl font-bold text-blue-600">{payments.length}</div>
               <div className="text-sm text-gray-600 mt-1">Total Payments</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">${totalPaid.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-green-600">{totalPaid.toLocaleString()}</div>
               <div className="text-sm text-gray-600 mt-1">Total Amount Paid</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-600">
-                ${taxpayerPayments.length > 0 ? Math.round(totalPaid / taxpayerPayments.length).toLocaleString() : '0'}
+                {payments.length > 0 ? Math.round(totalPaid / payments.length).toLocaleString() : '0'}
               </div>
               <div className="text-sm text-gray-600 mt-1">Average Payment</div>
             </div>
@@ -137,24 +197,23 @@ Website: www.proftax.example.com
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {taxpayerPayments.map((payment) => {
-                const assessment = getAssessmentDetails(payment.assessmentId);
-                return (
-                  <tr key={payment.id}>
+              {payments.length > 0 ? (
+                payments.map((payment) => (
+                  <tr key={payment._id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                      {payment.receiptNumber}
+                      #{payment.receiptNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {assessment?.assessmentYear}
+                      {payment.assessmentId?.financialYear || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${payment.amount.toLocaleString()}
+                      ${(payment.amount || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(payment.paymentDate).toLocaleDateString()}
+                      {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.method}
+                      {payment.mode || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
@@ -166,8 +225,14 @@ Website: www.proftax.example.com
                       </button>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    {error || 'No payments found'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -179,12 +244,15 @@ Website: www.proftax.example.com
             <div>
               <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Methods</h4>
               <div className="space-y-2">
-                {['Credit Card', 'Bank Transfer', 'Cash', 'Check'].map((method) => {
-                  const methodPayments = taxpayerPayments.filter(p => p.method === method);
-                  const methodTotal = methodPayments.reduce((sum, p) => sum + p.amount, 0);
+                {['online', 'cash', 'cheque', 'bank_transfer'].map((method) => {
+                  const methodPayments = payments.filter(p => p?.mode === method);
+                  const methodTotal = methodPayments.reduce(
+                    (sum: number, p: Payment) => sum + (p?.amount || 0),
+                    0
+                  );
                   return (
                     <div key={method} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{method}:</span>
+                      <span className="text-gray-600 capitalize">{method.replace('_', ' ')}:</span>
                       <span className="font-medium">${methodTotal.toLocaleString()} ({methodPayments.length})</span>
                     </div>
                   );
@@ -194,18 +262,24 @@ Website: www.proftax.example.com
             <div>
               <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Activity</h4>
               <div className="space-y-2">
-                {taxpayerPayments
-                  .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+                {payments
+                  .sort((a, b) => {
+                    const dateA = a?.paymentDate ? new Date(a.paymentDate).getTime() : 0;
+                    const dateB = b?.paymentDate ? new Date(b.paymentDate).getTime() : 0;
+                    return dateB - dateA;
+                  })
                   .slice(0, 3)
                   .map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
+                    <div key={payment._id} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                       <div className="flex items-center">
                         <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                        <span className="text-gray-900">{payment.receiptNumber}</span>
+                        <span className="text-gray-900">#{payment.receiptNumber}</span>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">${payment.amount.toLocaleString()}</div>
-                        <div className="text-gray-500">{new Date(payment.paymentDate).toLocaleDateString()}</div>
+                        <div className="font-medium">${(payment.amount || 0).toLocaleString()}</div>
+                        <div className="text-gray-500">
+                          {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -213,6 +287,16 @@ Website: www.proftax.example.com
             </div>
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <FileText className="h-5 w-5 text-red-400 mr-2" />
+              <p className="text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
       </div>
     </TaxpayerLayout>
   );

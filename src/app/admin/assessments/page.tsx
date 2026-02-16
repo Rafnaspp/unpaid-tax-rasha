@@ -1,69 +1,138 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { useApp } from '@/contexts/AppContext';
-import { Assessment } from '@/types';
-import { Plus, Edit, Trash2, Calculator } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+
+interface Assessment {
+  _id: string;
+  taxpayerId: string;
+  financialYear: string;
+  slabName: string;
+  amount: number;
+  paidAmount: number;
+  balance: number;
+  dueDate: string;
+  status: 'unpaid' | 'partially_paid' | 'paid';
+}
+
+interface User {
+  _id: string;
+  name: string;
+  businessName: string;
+}
 
 export default function AssessmentsPage() {
-  const { state, addAssessment, updateAssessment } = useApp();
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
   const [formData, setFormData] = useState({
     taxpayerId: '',
-    assessmentYear: '',
-    totalAmount: '',
+    financialYear: '',
+    slabName: '',
+    amount: '',
     dueDate: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const resetForm = () => {
-    setFormData({
-      taxpayerId: '',
-      assessmentYear: '',
-      totalAmount: '',
-      dueDate: ''
-    });
-    setEditingAssessment(null);
+  useEffect(() => {
+    fetchAssessments();
+    fetchUsers();
+  }, []);
+
+  const fetchAssessments = async () => {
+    try {
+      const response = await fetch('/api/admin/assessments');
+      const data = await response.json();
+      if (data.success) {
+        setAssessments(data.assessments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching assessments:', error);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const assessmentData = {
-      taxpayerId: formData.taxpayerId,
-      assessmentYear: formData.assessmentYear,
-      totalAmount: parseFloat(formData.totalAmount),
-      paidAmount: 0,
-      balance: parseFloat(formData.totalAmount),
-      dueDate: formData.dueDate,
-      status: 'unpaid' as const
-    };
-
-    if (editingAssessment) {
-      updateAssessment(editingAssessment.id, assessmentData);
-    } else {
-      addAssessment(assessmentData);
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
-    
-    resetForm();
-    setShowModal(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/admin/assessments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          amount: Number(formData.amount),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowModal(false);
+        resetForm();
+        await fetchAssessments();
+      } else {
+        setError(data.message || 'Failed to create assessment');
+      }
+    } catch (error) {
+      setError('Server error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEdit = (assessment: Assessment) => {
     setEditingAssessment(assessment);
     setFormData({
       taxpayerId: assessment.taxpayerId,
-      assessmentYear: assessment.assessmentYear,
-      totalAmount: assessment.totalAmount.toString(),
+      financialYear: assessment.financialYear,
+      slabName: assessment.slabName,
+      amount: assessment.amount.toString(),
       dueDate: assessment.dueDate
     });
     setShowModal(true);
   };
 
-  const getTaxpayerName = (taxpayerId: string) => {
-    const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-    return taxpayer?.name || 'Unknown';
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this assessment?')) {
+      // Note: Delete API not implemented yet
+      console.log('Delete functionality not implemented');
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      taxpayerId: '',
+      financialYear: '',
+      slabName: '',
+      amount: '',
+      dueDate: ''
+    });
+    setEditingAssessment(null);
+    setError('');
+  };
+
+  const getUserName = (taxpayerId: string) => {
+    const user = users.find(u => u._id === taxpayerId);
+    return user ? user.name : 'Unknown';
   };
 
   const getStatusColor = (status: string) => {
@@ -79,18 +148,15 @@ export default function AssessmentsPage() {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'Paid';
-      case 'partially_paid':
-        return 'Partially Paid';
-      case 'unpaid':
-        return 'Unpaid';
-      default:
-        return status;
-    }
-  };
+  if (isLoading && assessments.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading assessments...</div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -104,154 +170,209 @@ export default function AssessmentsPage() {
             }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Assessment
+            <Plus className="h-4 w-4 mr-2" />
+            Add Assessment
           </button>
         </div>
 
         {/* Assessments Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Taxpayer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assessment Year
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Paid Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Balance
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {state.assessments.map((assessment) => (
-                <tr key={assessment.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {getTaxpayerName(assessment.taxpayerId)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {assessment.assessmentYear}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${assessment.totalAmount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${assessment.paidAmount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${assessment.balance.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(assessment.dueDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(assessment.status)}`}>
-                      {getStatusText(assessment.status)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(assessment)}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">All Assessments</h3>
+          </div>
+          <div className="overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Taxpayer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Financial Year
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Slab
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Paid
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Balance
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Due Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {assessments.length > 0 ? (
+                  assessments.map((assessment) => (
+                    <tr key={assessment._id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {getUserName(assessment.taxpayerId)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {assessment.financialYear}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {assessment.slabName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${(assessment.amount || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${(assessment.paidAmount || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${(assessment.balance || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(assessment.dueDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(assessment.status)}`}>
+                          {assessment.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleEdit(assessment)}
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(assessment._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                      No assessments found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Create/Edit Modal */}
+        {/* Add/Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {editingAssessment ? 'Edit Assessment' : 'Create New Assessment'}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                {editingAssessment ? 'Edit Assessment' : 'Add New Assessment'}
               </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Taxpayer</label>
-                  <select
-                    required
-                    value={formData.taxpayerId}
-                    onChange={(e) => setFormData({ ...formData, taxpayerId: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Taxpayer
+                    </label>
+                    <select
+                      required
+                      value={formData.taxpayerId}
+                      onChange={(e) => setFormData({ ...formData, taxpayerId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Taxpayer</option>
+                      {users.map((user) => (
+                        <option key={user._id} value={user._id}>
+                          {user.name} - {user.businessName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Financial Year
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.financialYear}
+                      onChange={(e) => setFormData({ ...formData, financialYear: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Slab Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.slabName}
+                      onChange={(e) => setFormData({ ...formData, slabName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Due Date
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.dueDate}
+                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="mt-6 flex space-x-3">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    <option value="">Select Taxpayer</option>
-                    {state.taxpayers.map((taxpayer) => (
-                      <option key={taxpayer.id} value={taxpayer.id}>
-                        {taxpayer.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Assessment Year</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., 2023-2024"
-                    value={formData.assessmentYear}
-                    onChange={(e) => setFormData({ ...formData, assessmentYear: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Amount ($)</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formData.totalAmount}
-                    onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Due Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
+                    {isLoading ? 'Saving...' : (editingAssessment ? 'Update' : 'Create')}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                   >
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    {editingAssessment ? 'Update' : 'Create'}
                   </button>
                 </div>
               </form>

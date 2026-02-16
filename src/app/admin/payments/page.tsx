@@ -1,146 +1,153 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { useApp } from '@/contexts/AppContext';
-import { CreditCard, DollarSign, FileText } from 'lucide-react';
+import { DollarSign, CreditCard, Receipt } from 'lucide-react';
+
+interface Payment {
+  _id: string;
+  assessmentId: {
+    _id: string;
+    financialYear: string;
+    amount: number;
+  } | null;
+  taxpayerId: {
+    _id: string;
+    name: string;
+    businessName: string;
+  } | null;
+  amount: number;
+  paymentDate: string;
+  mode: string;
+  receiptNumber: string;
+}
 
 export default function PaymentsPage() {
-  const { state, addPayment } = useApp();
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [showModal, setShowModal] = useState(false);
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
-  const [receiptData, setReceiptData] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+  const [paymentMode, setPaymentMode] = useState('cash');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const getTaxpayerName = (taxpayerId: string) => {
-    const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-    return taxpayer?.name || 'Unknown';
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const response = await fetch('/api/admin/payments');
+      const data = await response.json();
+      if (data.success) {
+        setPayments(data.payments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
   };
 
-  const getAssessmentDetails = (assessmentId: string) => {
-    return state.assessments.find(a => a.id === assessmentId);
-  };
-
-  const handlePayment = (assessment: any) => {
-    setSelectedAssessment(assessment);
-    setPaymentAmount(assessment.balance.toString());
-    setShowPaymentModal(true);
-  };
-
-  const processPayment = () => {
+  const handleManualPayment = async () => {
     if (!selectedAssessment || !paymentAmount) return;
 
-    const amount = parseFloat(paymentAmount);
-    if (amount <= 0 || amount > selectedAssessment.balance) {
-      alert('Invalid payment amount');
-      return;
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/admin/manual-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assessmentId: selectedAssessment._id,
+          amount: Number(paymentAmount),
+          mode: paymentMode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowModal(false);
+        resetForm();
+        await fetchPayments();
+      } else {
+        setError(data.message || 'Failed to process payment');
+      }
+    } catch (error) {
+      setError('Server error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const receiptNumber = addPayment({
-      assessmentId: selectedAssessment.id,
-      amount: amount,
-      paymentDate: new Date().toISOString().split('T')[0],
-      method: paymentMethod
-    });
-
-    const assessment = getAssessmentDetails(selectedAssessment.id);
-    const taxpayer = state.taxpayers.find(t => t.id === assessment?.taxpayerId);
-
-    setReceiptData({
-      receiptNumber,
-      taxpayerName: taxpayer?.name,
-      assessmentYear: assessment?.assessmentYear,
-      amount,
-      paymentDate: new Date().toLocaleDateString(),
-      method: paymentMethod,
-      remainingBalance: assessment ? assessment.balance - amount : 0
-    });
-
-    setShowPaymentModal(false);
-    setShowReceiptModal(true);
-    setPaymentAmount('');
+  const resetForm = () => {
     setSelectedAssessment(null);
+    setPaymentAmount('');
+    setPaymentMode('cash');
+    setError('');
   };
 
-  const printReceipt = () => {
-    window.print();
-  };
+  const totalCollected = payments.reduce(
+    (sum: number, payment: Payment) => sum + (payment?.amount || 0),
+    0
+  );
 
-  const unpaidAssessments = state.assessments.filter(a => a.balance > 0);
+  const onlinePayments = payments.filter(p => p?.mode === 'online').length;
+  const cashPayments = payments.filter(p => p?.mode === 'cash').length;
+
+  if (isLoading && payments.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading payments...</div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">Payment Management</h1>
 
-        {/* Unpaid Assessments */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Outstanding Payments</h3>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Collected</p>
+                <p className="text-2xl font-bold text-gray-900">${totalCollected.toLocaleString()}</p>
+              </div>
+            </div>
           </div>
-          <div className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Taxpayer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Assessment Year
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Paid Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Balance
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Due Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {unpaidAssessments.map((assessment) => (
-                  <tr key={assessment.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {getTaxpayerName(assessment.taxpayerId)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {assessment.assessmentYear}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${assessment.totalAmount.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${assessment.paidAmount.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
-                      ${assessment.balance.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(assessment.dueDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handlePayment(assessment)}
-                        className="flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                      >
-                        <DollarSign className="w-4 h-4 mr-1" />
-                        Pay Now
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
+                <CreditCard className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Online Payments</p>
+                <p className="text-2xl font-bold text-gray-900">{onlinePayments}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-yellow-100 rounded-lg p-3">
+                <Receipt className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Cash Payments</p>
+                <p className="text-2xl font-bold text-gray-900">{cashPayments}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -154,157 +161,143 @@ export default function PaymentsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Receipt Number
+                    Receipt #
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Taxpayer
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assessment
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Amount
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Date
+                    Mode
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Method
+                    Date
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {state.payments.map((payment) => {
-                  const assessment = getAssessmentDetails(payment.assessmentId);
-                  return (
-                    <tr key={payment.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                        {payment.receiptNumber}
+                {payments.length > 0 ? (
+                  payments.map((payment) => (
+                    <tr key={payment._id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{payment.receiptNumber}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getTaxpayerName(assessment?.taxpayerId || '')}
+                        {payment.taxpayerId?.name || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {payment.assessmentId?.financialYear || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${payment.amount.toLocaleString()}
+                        ${(payment.amount || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          payment.mode === 'online' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {payment.mode}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(payment.paymentDate).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {payment.method}
-                      </td>
                     </tr>
-                  );
-                })}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      No payments found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Payment Modal */}
-        {showPaymentModal && selectedAssessment && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Process Payment</h3>
+        {/* Manual Payment Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Record Manual Payment</h3>
+              
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600">Taxpayer: {getTaxpayerName(selectedAssessment.taxpayerId)}</p>
-                  <p className="text-sm text-gray-600">Assessment Year: {selectedAssessment.assessmentYear}</p>
-                  <p className="text-sm text-gray-600">Outstanding Balance: ${selectedAssessment.balance.toLocaleString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Payment Amount ($)</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    max={selectedAssessment.balance}
-                    step="0.01"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Assessment
+                  </label>
                   <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    required
+                    value={selectedAssessment?._id || ''}
+                    onChange={(e) => {
+                      const assessment = {
+                        _id: e.target.value,
+                        balance: 0
+                      };
+                      setSelectedAssessment(assessment);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Check">Check</option>
+                    <option value="">Select Assessment</option>
                   </select>
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => setShowPaymentModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Amount
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Mode
+                  </label>
+                  <select
+                    required
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={processPayment}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                  >
-                    Process Payment
-                  </button>
+                    <option value="cash">Cash</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                  </select>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Receipt Modal */}
-        {showReceiptModal && receiptData && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="text-center">
-                <FileText className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Payment Receipt</h3>
-              </div>
-              <div className="border-t border-b border-gray-200 py-4 my-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Receipt Number:</span>
-                    <span className="text-sm font-medium">{receiptData.receiptNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Taxpayer:</span>
-                    <span className="text-sm font-medium">{receiptData.taxpayerName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Assessment Year:</span>
-                    <span className="text-sm font-medium">{receiptData.assessmentYear}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Amount Paid:</span>
-                    <span className="text-sm font-medium">${receiptData.amount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Payment Date:</span>
-                    <span className="text-sm font-medium">{receiptData.paymentDate}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Payment Method:</span>
-                    <span className="text-sm font-medium">{receiptData.method}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Remaining Balance:</span>
-                    <span className="text-sm font-medium">${receiptData.remainingBalance.toLocaleString()}</span>
-                  </div>
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                  {error}
                 </div>
-              </div>
-              <div className="flex justify-end space-x-3">
+              )}
+
+              <div className="mt-6 flex space-x-3">
                 <button
-                  onClick={() => setShowReceiptModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  onClick={handleManualPayment}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Close
+                  {isLoading ? 'Processing...' : 'Record Payment'}
                 </button>
                 <button
-                  onClick={printReceipt}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                 >
-                  Print Receipt
+                  Cancel
                 </button>
               </div>
             </div>

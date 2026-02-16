@@ -1,325 +1,322 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { useApp } from '@/contexts/AppContext';
-import { Bell, Download, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Calendar, DollarSign, Filter } from 'lucide-react';
+
+interface Assessment {
+  _id: string;
+  taxpayerId: {
+    _id: string;
+    name: string;
+    businessName: string;
+  } | null;
+  financialYear: string;
+  slabName: string;
+  amount: number;
+  paidAmount: number;
+  balance: number;
+  dueDate: string;
+  status: 'unpaid' | 'partially_paid' | 'paid';
+}
 
 export default function UnpaidPage() {
-  const { state, addReminder } = useApp();
-  const [filterStatus, setFilterStatus] = useState<'all' | 'overdue' | 'upcoming'>('all');
-  const [showReminderModal, setShowReminderModal] = useState(false);
-  const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [filter, setFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const getTaxpayerName = (taxpayerId: string) => {
-    const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-    return taxpayer?.name || 'Unknown';
-  };
+  useEffect(() => {
+    fetchAssessments();
+  }, []);
 
-  const getTaxpayerEmail = (taxpayerId: string) => {
-    const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-    return taxpayer?.email || '';
-  };
-
-  const getTaxpayerAddress = (taxpayerId: string) => {
-    const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-    return taxpayer?.address || '';
-  };
-
-  const unpaidAssessments = state.assessments.filter(a => a.balance > 0);
-  
-  const filteredAssessments = unpaidAssessments.filter(assessment => {
-    const dueDate = new Date(assessment.dueDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (filterStatus === 'overdue') {
-      return dueDate < today;
-    } else if (filterStatus === 'upcoming') {
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(today.getDate() + 30);
-      return dueDate >= today && dueDate <= thirtyDaysFromNow;
+  const fetchAssessments = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/admin/assessments');
+      const data = await response.json();
+      if (data.success) {
+        setAssessments(data.assessments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching assessments:', error);
+      setError('Failed to fetch assessments');
+    } finally {
+      setIsLoading(false);
     }
-    return true;
+  };
+
+  const sendReminder = async (assessmentId: string) => {
+    try {
+      const response = await fetch('/api/admin/reminder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taxpayerId: assessments.find(a => a._id === assessmentId)?.taxpayerId?._id || '',
+          assessmentId,
+          message: 'Your professional tax payment is overdue. Please pay immediately to avoid penalties.'
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Reminder sent successfully');
+      } else {
+        alert('Failed to send reminder');
+      }
+    } catch (error) {
+      alert('Error sending reminder');
+    }
+  };
+
+  // Safe filtering with fallbacks
+  const filteredAssessments = assessments.filter(assessment => {
+    if (!assessment) return false;
+    switch (filter) {
+      case 'overdue':
+        return assessment.status === 'unpaid' && assessment.dueDate && new Date(assessment.dueDate) < new Date();
+      case 'unpaid':
+        return assessment.status === 'unpaid';
+      case 'partial':
+        return assessment.status === 'partially_paid';
+      default:
+        return true;
+    }
   });
 
-  const isOverdue = (dueDate: string) => {
-    return new Date(dueDate) < new Date();
-  };
+  // Safe calculations with fallbacks
+  const totalOutstanding = filteredAssessments.reduce(
+    (sum: number, assessment: Assessment) => sum + (assessment?.balance || 0),
+    0
+  );
 
-  const generateReminder = (assessment: any) => {
-    setSelectedAssessment(assessment);
-    setShowReminderModal(true);
-  };
+  const overdueCount = filteredAssessments.filter(
+    a => a?.status === 'unpaid' && a?.dueDate && new Date(a.dueDate) < new Date()
+  ).length;
 
-  const createReminder = () => {
-    if (!selectedAssessment) return;
+  const partialPaymentCount = filteredAssessments.filter(
+    a => a?.status === 'partially_paid'
+  ).length;
 
-    addReminder({
-      assessmentId: selectedAssessment.id,
-      taxpayerId: selectedAssessment.taxpayerId,
-      generatedDate: new Date().toISOString().split('T')[0],
-      dueDate: selectedAssessment.dueDate,
-      amount: selectedAssessment.balance,
-      status: 'sent'
-    });
-
-    setShowReminderModal(false);
-    setSelectedAssessment(null);
-  };
-
-  const printReminder = () => {
-    if (!selectedAssessment) return;
-    
-    const taxpayer = state.taxpayers.find(t => t.id === selectedAssessment.taxpayerId);
-    const reminderContent = `
-PROFESSIONAL TAX REMINDER NOTICE
-
-Date: ${new Date().toLocaleDateString()}
-Taxpayer: ${taxpayer?.name}
-Address: ${taxpayer?.address}
-Email: ${taxpayer?.email}
-
-Assessment Details:
-- Assessment Year: ${selectedAssessment.assessmentYear}
-- Outstanding Amount: $${selectedAssessment.balance.toLocaleString()}
-- Due Date: ${new Date(selectedAssessment.dueDate).toLocaleDateString()}
-- Status: ${isOverdue(selectedAssessment.dueDate) ? 'OVERDUE' : 'DUE SOON'}
-
-Please make your payment as soon as possible to avoid penalties.
-Payment methods available: Online portal, Bank transfer, Cash, Check
-
-Contact Information:
-Tax Office: +1-234-567-8900
-Email: taxoffice@example.com
-Website: www.proftax.example.com
-
-This is an automated reminder. Please disregard if payment has already been made.
-    `.trim();
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Tax Reminder Notice</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
-              h1 { text-align: center; color: #333; }
-              .notice { border: 2px solid #333; padding: 20px; margin: 20px 0; }
-              .overdue { color: #d00; font-weight: bold; }
-            </style>
-          </head>
-          <body>
-            <pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${reminderContent}</pre>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
+  if (isLoading && assessments.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading unpaid assessments...</div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Unpaid & Overdue Assessments</h1>
-          <div className="flex items-center space-x-4">
-            <div className="flex bg-white rounded-lg shadow">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
-                  filterStatus === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                All ({unpaidAssessments.length})
-              </button>
-              <button
-                onClick={() => setFilterStatus('overdue')}
-                className={`px-4 py-2 text-sm font-medium ${
-                  filterStatus === 'overdue'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Overdue ({unpaidAssessments.filter(a => isOverdue(a.dueDate)).length})
-              </button>
-              <button
-                onClick={() => setFilterStatus('upcoming')}
-                className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
-                  filterStatus === 'upcoming'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Due Soon (30 days)
-              </button>
-            </div>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Unpaid & Overdue Assessments</h1>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-red-100 rounded-lg p-3">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Overdue</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  ${unpaidAssessments.filter(a => isOverdue(a.dueDate)).reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Total Outstanding</p>
+                <p className="text-2xl font-bold text-gray-900">${totalOutstanding.toLocaleString()}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-orange-100 rounded-lg p-3">
+                <Calendar className="h-6 w-6 text-orange-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Overdue</p>
+                <p className="text-2xl font-bold text-gray-900">{overdueCount}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-yellow-100 rounded-lg p-3">
-                <Bell className="h-6 w-6 text-yellow-600" />
+                <DollarSign className="h-6 w-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Due Soon (30 days)</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  ${filteredAssessments.filter(a => !isOverdue(a.dueDate)).reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Partial Payments</p>
+                <p className="text-2xl font-bold text-gray-900">{partialPaymentCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
-                <Download className="h-6 w-6 text-blue-600" />
+                <Filter className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Reminders Sent</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {state.reminders.filter(r => r.status === 'sent').length}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Filtered Results</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredAssessments.length}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white shadow rounded-lg p-4">
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All ({assessments.length})
+            </button>
+            <button
+              onClick={() => setFilter('overdue')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                filter === 'overdue'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Overdue ({overdueCount})
+            </button>
+            <button
+              onClick={() => setFilter('unpaid')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                filter === 'unpaid'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Unpaid ({assessments.filter(a => a?.status === 'unpaid').length})
+            </button>
+            <button
+              onClick={() => setFilter('partial')}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                filter === 'partial'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Partial ({partialPaymentCount})
+            </button>
           </div>
         </div>
 
         {/* Assessments Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Taxpayer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assessment Year
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Balance
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Days Overdue
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAssessments.map((assessment) => {
-                const overdue = isOverdue(assessment.dueDate);
-                const daysOverdue = overdue ? Math.floor((new Date().getTime() - new Date(assessment.dueDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                
-                return (
-                  <tr key={assessment.id} className={overdue ? 'bg-red-50' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {getTaxpayerName(assessment.taxpayerId)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {assessment.assessmentYear}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${assessment.balance.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(assessment.dueDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {overdue ? (
-                        <span className="text-red-600 font-medium">{daysOverdue} days</span>
-                      ) : (
-                        <span className="text-green-600">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        overdue ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {overdue ? 'Overdue' : 'Due Soon'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => generateReminder(assessment)}
-                        className="flex items-center px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700"
-                      >
-                        <Bell className="w-4 h-4 mr-1" />
-                        Send Reminder
-                      </button>
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Assessments</h3>
+          </div>
+          <div className="overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Taxpayer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Financial Year
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Slab
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Paid
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Balance
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Due Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAssessments.length > 0 ? (
+                  filteredAssessments.map((assessment) => {
+                    const isOverdue = assessment.status === 'unpaid' && assessment.dueDate && new Date(assessment.dueDate) < new Date();
+                    
+                    return (
+                      <tr key={assessment._id} className={isOverdue ? 'bg-red-50' : ''}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {assessment.taxpayerId?.name || 'Unknown'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {assessment.financialYear}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {assessment.slabName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ${(assessment.amount || 0).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ${(assessment.paidAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          ${(assessment.balance || 0).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {assessment.dueDate ? new Date(assessment.dueDate).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            assessment.status === 'paid'
+                              ? 'bg-green-100 text-green-800'
+                              : assessment.status === 'partially_paid'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : isOverdue
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {assessment.status === 'paid' ? 'Paid' : 
+                             assessment.status === 'partially_paid' ? 'Partial' :
+                             isOverdue ? 'OVERDUE' : 'Unpaid'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {assessment.status !== 'paid' && (
+                            <button
+                              onClick={() => sendReminder(assessment._id)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              Send Reminder
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                      {error || 'No assessments found'}
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Reminder Modal */}
-        {showReminderModal && selectedAssessment && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Generate Reminder</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600">Taxpayer: {getTaxpayerName(selectedAssessment.taxpayerId)}</p>
-                  <p className="text-sm text-gray-600">Email: {getTaxpayerEmail(selectedAssessment.taxpayerId)}</p>
-                  <p className="text-sm text-gray-600">Assessment Year: {selectedAssessment.assessmentYear}</p>
-                  <p className="text-sm text-gray-600">Outstanding Amount: ${selectedAssessment.balance.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">Due Date: {new Date(selectedAssessment.dueDate).toLocaleDateString()}</p>
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => setShowReminderModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={printReminder}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Print Notice
-                  </button>
-                  <button
-                    onClick={createReminder}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
-                  >
-                    Send Reminder
-                  </button>
-                </div>
-              </div>
-            </div>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
       </div>
     </AdminLayout>
   );

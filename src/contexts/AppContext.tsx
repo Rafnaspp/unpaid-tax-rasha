@@ -103,14 +103,14 @@ interface AppContextType extends AppState {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>({
-    users: [],
     assessments: [],
+    taxpayers: [],
     payments: [],
     reminders: [],
-    dashboardData: null,
-    isLoading: false,
+    loading: false,
+    error: null
   });
 
   // API helper function

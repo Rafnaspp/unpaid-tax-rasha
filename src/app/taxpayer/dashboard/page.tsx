@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import TaxpayerLayout from '@/components/Layout/TaxpayerLayout';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DollarSign,
   FileText,
@@ -12,27 +12,118 @@ import {
   CreditCard
 } from 'lucide-react';
 
+interface Assessment {
+  _id: string;
+  financialYear: string;
+  slabName: string;
+  amount: number;
+  paidAmount: number;
+  balance: number;
+  dueDate: string;
+  status: 'unpaid' | 'partially_paid' | 'paid';
+}
+
+interface Payment {
+  _id: string;
+  amount: number;
+  paymentDate: string;
+  mode: string;
+  receiptNumber: string;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  businessName: string;
+  ward: string;
+}
+
 export default function TaxpayerDashboard() {
-  const { state } = useApp();
+  const { user } = useAuth();
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [userInfo, setUserInfo] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // For demo purposes, we'll show data for first taxpayer
-  const taxpayerId = '1'; // John Smith's ID
-  const taxpayer = state.taxpayers.find(t => t.id === taxpayerId);
-  
-  const taxpayerAssessments = state.assessments.filter(a => a.taxpayerId === taxpayerId);
-  const taxpayerPayments = state.payments.filter(p => {
-    const assessment = state.assessments.find(a => a.id === p.assessmentId);
-    return assessment?.taxpayerId === taxpayerId;
-  });
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+    }
+  }, [user]);
 
-  const totalAssessed = taxpayerAssessments.reduce((sum, a) => sum + a.totalAmount, 0);
-  const totalPaid = taxpayerAssessments.reduce((sum, a) => sum + a.paidAmount, 0);
-  const totalUnpaid = taxpayerAssessments.reduce((sum, a) => sum + a.balance, 0);
-  const overdueAssessments = taxpayerAssessments.filter(a => a.balance > 0 && new Date(a.dueDate) < new Date());
+  const fetchUserData = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
 
-  const nextDueAssessment = taxpayerAssessments
-    .filter(a => a.balance > 0)
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+      // Fetch user assessments
+      const assessmentsResponse = await fetch(`/api/user/assessments?userId=${user?.id}`);
+      const assessmentsData = await assessmentsResponse.json();
+      if (assessmentsData.success) {
+        setAssessments(assessmentsData.assessments || []);
+      }
+
+      // Fetch user payments
+      const paymentsResponse = await fetch(`/api/user/payments?userId=${user?.id}`);
+      const paymentsData = await paymentsResponse.json();
+      if (paymentsData.success) {
+        setPayments(paymentsData.payments || []);
+      }
+
+      // Set user info from auth context
+      setUserInfo({
+        _id: user?.id || '',
+        name: user?.name || '',
+        businessName: user?.businessName || '',
+        ward: user?.ward || ''
+      });
+
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setError('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Safe calculations with fallbacks
+  const totalAssessed = assessments.reduce(
+    (sum: number, assessment: Assessment) => sum + (assessment?.amount || 0),
+    0
+  );
+  const totalPaid = assessments.reduce(
+    (sum: number, assessment: Assessment) => sum + (assessment?.paidAmount || 0),
+    0
+  );
+  const totalUnpaid = assessments.reduce(
+    (sum: number, assessment: Assessment) => sum + (assessment?.balance || 0),
+    0
+  );
+
+  // Safe filtering with fallbacks
+  const overdueAssessments = assessments.filter(
+    a => a?.status === 'unpaid' && a?.dueDate && new Date(a.dueDate) < new Date()
+  );
+
+  const nextDueAssessment = assessments
+    .filter(a => a?.balance > 0)
+    .sort((a, b) => {
+      const dateA = a?.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const dateB = b?.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      return dateA - dateB;
+    })[0];
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <TaxpayerLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading dashboard...</div>
+        </div>
+      </TaxpayerLayout>
+    );
+  }
 
   return (
     <TaxpayerLayout>
@@ -41,26 +132,20 @@ export default function TaxpayerDashboard() {
         <div className="bg-white rounded-2xl shadow-lg p-8 border border-teal-100">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome back, {taxpayer?.name}</h2>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome back, {userInfo?.name || 'User'}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600">
                 <div>
-                  <span className="font-medium">Profession:</span> {taxpayer?.profession}
+                  <span className="font-medium">Business:</span> {userInfo?.businessName || 'N/A'}
                 </div>
                 <div>
-                  <span className="font-medium">Email:</span> {taxpayer?.email}
-                </div>
-                <div>
-                  <span className="font-medium">Phone:</span> {taxpayer?.phone}
-                </div>
-                <div>
-                  <span className="font-medium">Registration:</span> {taxpayer?.registrationDate}
+                  <span className="font-medium">Ward:</span> {userInfo?.ward || 'N/A'}
                 </div>
               </div>
             </div>
             <div className="hidden md:block">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg">
                 <span className="text-white text-2xl font-bold">
-                  {taxpayer?.name?.charAt(0)}
+                  {userInfo?.name?.charAt(0) || 'U'}
                 </span>
               </div>
             </div>
@@ -76,12 +161,12 @@ export default function TaxpayerDashboard() {
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold mb-2">
-                {nextDueAssessment ? new Date(nextDueAssessment.dueDate).toLocaleDateString() : 'N/A'}
+                {nextDueAssessment?.dueDate ? new Date(nextDueAssessment.dueDate).toLocaleDateString() : 'N/A'}
               </div>
               <div className="text-teal-100">Next Due Date</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold mb-2">{taxpayerAssessments.length}</div>
+              <div className="text-4xl font-bold mb-2">{assessments.length}</div>
               <div className="text-teal-100">Active Assessments</div>
             </div>
           </div>
@@ -122,7 +207,7 @@ export default function TaxpayerDashboard() {
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-1">Payment History</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  {taxpayerPayments.length}
+                  {payments.length}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
@@ -139,31 +224,35 @@ export default function TaxpayerDashboard() {
               <h3 className="text-lg font-semibold text-slate-900">Your Assessments</h3>
             </div>
             <div className="p-6">
-              <div className="space-y-4">
-                {taxpayerAssessments.slice(0, 4).map((assessment) => (
-                  <div key={assessment.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                    <div>
-                      <p className="font-medium text-slate-900">{assessment.assessmentYear}</p>
-                      <p className="text-sm text-slate-600">Balance: ${assessment.balance.toLocaleString()}</p>
+              {assessments.length > 0 ? (
+                <div className="space-y-4">
+                  {assessments.slice(0, 4).map((assessment) => (
+                    <div key={assessment._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                      <div>
+                        <p className="font-medium text-slate-900">{assessment.financialYear}</p>
+                        <p className="text-sm text-slate-600">Balance: ${(assessment.balance || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          assessment.status === 'paid' ? 'bg-green-100 text-green-800' :
+                          assessment.status === 'partially_paid' ? 'bg-amber-100 text-amber-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {assessment.status === 'paid' ? 'Paid' :
+                           assessment.status === 'partially_paid' ? 'Partially Paid' : 'Unpaid'}
+                        </span>
+                        {(assessment.balance || 0) > 0 && (
+                          <button className="mt-2 w-full px-3 py-1 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors">
+                            Pay Now
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        assessment.status === 'paid' ? 'bg-green-100 text-green-800' :
-                        assessment.status === 'partially_paid' ? 'bg-amber-100 text-amber-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {assessment.status === 'paid' ? 'Paid' :
-                         assessment.status === 'partially_paid' ? 'Partially Paid' : 'Unpaid'}
-                      </span>
-                      {assessment.balance > 0 && (
-                        <button className="mt-2 w-full px-3 py-1 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors">
-                          Pay Now
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No assessments found</p>
+              )}
             </div>
           </div>
 
@@ -173,20 +262,26 @@ export default function TaxpayerDashboard() {
               <h3 className="text-lg font-semibold text-slate-900">Payment History</h3>
             </div>
             <div className="p-6">
-              <div className="space-y-4">
-                {taxpayerPayments.slice(0, 4).map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                    <div>
-                      <p className="font-medium text-slate-900">{payment.receiptNumber}</p>
-                      <p className="text-sm text-slate-600">{new Date(payment.paymentDate).toLocaleDateString()}</p>
+              {payments.length > 0 ? (
+                <div className="space-y-4">
+                  {payments.slice(0, 4).map((payment) => (
+                    <div key={payment._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                      <div>
+                        <p className="font-medium text-slate-900">#{payment.receiptNumber}</p>
+                        <p className="text-sm text-slate-600">
+                          {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-slate-900">${(payment.amount || 0).toLocaleString()}</p>
+                        <p className="text-xs text-slate-500 capitalize">{payment.mode || 'N/A'}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-slate-900">${payment.amount.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">{payment.method}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No payments found</p>
+              )}
             </div>
           </div>
         </div>
@@ -199,12 +294,22 @@ export default function TaxpayerDashboard() {
               <div>
                 <h3 className="text-xl font-bold mb-2">Payment Overdue</h3>
                 <p className="text-red-100">
-                  You have {overdueAssessments.length} overdue assessment(s) totaling ${overdueAssessments.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
+                  You have {overdueAssessments.length} overdue assessment(s) totaling ${overdueAssessments.reduce((sum: number, a: Assessment) => sum + (a?.balance || 0), 0).toLocaleString()}
                 </p>
                 <p className="text-red-200 text-sm mt-2">
                   Please make your payment as soon as possible to avoid penalties.
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+              <p className="text-red-700">{error}</p>
             </div>
           </div>
         )}

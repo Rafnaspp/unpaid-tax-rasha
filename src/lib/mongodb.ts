@@ -4,10 +4,10 @@ declare global {
   var mongoose: any;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || '';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://unpaidproftax_db_user:3yokNPMvz95J5hVr@cluster0.jf1vhwx.mongodb.net/taxtracker?retryWrites=true&w=majority';
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  throw new Error('Please define the MONGODB_URI environment variable inside .env');
 }
 
 let cached = global.mongoose;
