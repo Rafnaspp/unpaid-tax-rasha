@@ -24,7 +24,7 @@ const Sidebar = () => {
     { href: '/admin/assessments', label: 'Assessments', icon: FileText },
     { href: '/admin/payments', label: 'Payments', icon: CreditCard },
     // { href: '/admin/unpaid', label: 'Unpaid/Overdue', icon: BarChart3 },
-    { href: '/admin/reminders', label: 'Reminders', icon: Bell },
+    // { href: '/admin/reminders', label: 'Reminders', icon: Bell },
   ];
 
   const taxpayerMenuItems = [
