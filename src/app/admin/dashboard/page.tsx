@@ -32,39 +32,30 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
 
-      // Fetch all data in parallel
-      const [taxpayersRes, assessmentsRes, paymentsRes] = await Promise.all([
-        fetch('/api/admin/taxpayers'),
-        fetch('/api/admin/assessments'),
-        fetch('/api/admin/payments')
+      // Fetch dashboard data
+      const response = await fetch('/api/admin/dashboard');
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        setStats({
+          totalTaxpayers: data.data.totalTaxpayers || 0,
+          totalAssessments: data.data.totalAssessed || 0,
+          totalCollected: data.data.totalCollected || 0,
+          totalUnpaid: data.data.totalUnpaid || 0
+        });
+      }
+
+      // Fetch recent payments and overdue assessments separately
+      const [paymentsRes, assessmentsRes] = await Promise.all([
+        fetch('/api/admin/payments'),
+        fetch('/api/admin/assessments')
       ]);
 
-      const taxpayersData = await taxpayersRes.json();
-      const assessmentsData = await assessmentsRes.json();
       const paymentsData = await paymentsRes.json();
+      const assessmentsData = await assessmentsRes.json();
 
-      const taxpayers = taxpayersData.taxpayers || [];
-      const assessments = assessmentsData.assessments || [];
       const payments = paymentsData.payments || [];
-
-      // Calculate statistics
-      const totalTaxpayers = taxpayers.length;
-      const totalAssessments = assessments.length;
-      const totalCollected = payments.reduce(
-        (sum: number, payment: any) => sum + (payment?.amount || 0),
-        0
-      );
-      const totalUnpaid = assessments.reduce(
-        (sum: number, assessment: any) => sum + (assessment?.balance || 0),
-        0
-      );
-
-      setStats({
-        totalTaxpayers,
-        totalAssessments,
-        totalCollected,
-        totalUnpaid
-      });
+      const assessments = assessmentsData.assessments || [];
 
       // Set recent payments (last 5)
       const recent = payments
