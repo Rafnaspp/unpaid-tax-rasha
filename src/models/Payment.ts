@@ -16,6 +16,20 @@ const PaymentSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  refundAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  refundStatus: {
+    type: String,
+    enum: ['none', 'partial', 'full'],
+    default: 'none'
+  },
+  razorpayRefundId: {
+    type: String,
+    sparse: true
+  },
   paymentDate: {
     type: Date,
     default: Date.now

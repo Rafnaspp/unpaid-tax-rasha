@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import {  CreditCard, Receipt } from 'lucide-react';
+import {  CreditCard, Receipt, RotateCcw } from 'lucide-react';
 
 interface Payment {
   _id: string;
@@ -17,6 +17,9 @@ interface Payment {
     businessName: string;
   } | null;
   amount: number;
+  refundAmount: number;
+  refundStatus: 'none' | 'partial' | 'full';
+  razorpayRefundId?: string;
   paymentDate: string;
   mode: string;
   receiptNumber: string;
@@ -25,9 +28,13 @@ interface Payment {
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('cash');
+  const [refundAmount, setRefundAmount] = useState('');
+  const [isRefunding, setIsRefunding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -87,6 +94,62 @@ export default function PaymentsPage() {
     setPaymentAmount('');
     setPaymentMode('cash');
     setError('');
+  };
+
+  const handleRefund = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setRefundAmount('');
+    setError('');
+    setShowRefundModal(true);
+  };
+
+  const processRefund = async () => {
+    if (!selectedPayment || !refundAmount) {
+      setError('Please enter a refund amount');
+      return;
+    }
+
+    setIsRefunding(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/refund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentId: selectedPayment._id,
+          refundAmount: Number(refundAmount),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowRefundModal(false);
+        setSelectedPayment(null);
+        setRefundAmount('');
+        await fetchPayments();
+      } else {
+        setError(data.message || 'Failed to process refund');
+      }
+    } catch (error) {
+      setError('Server error. Please try again.');
+    } finally {
+      setIsRefunding(false);
+    }
+  };
+
+  const getRefundStatusColor = (status: string) => {
+    switch (status) {
+      case 'full':
+        return 'bg-red-100 text-red-800';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const totalCollected = payments.reduce(
@@ -173,10 +236,16 @@ export default function PaymentsPage() {
                     Amount
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Refund Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mode
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -197,6 +266,12 @@ export default function PaymentsPage() {
                         {(payment.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRefundStatusColor(payment.refundStatus)}`}>
+                          {payment.refundStatus === 'none' ? 'None' : payment.refundStatus}
+                          {payment.refundAmount > 0 && ` (₹${payment.refundAmount})`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           payment.mode === 'online' 
                             ? 'bg-blue-100 text-blue-800' 
@@ -208,11 +283,28 @@ export default function PaymentsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(payment.paymentDate).toLocaleDateString()}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {payment.mode === 'online' && payment.refundStatus !== 'full' && (
+                          <button
+                            onClick={() => handleRefund(payment)}
+                            className="text-orange-600 hover:text-orange-900 flex items-center space-x-1"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            <span>Refund</span>
+                          </button>
+                        )}
+                        {payment.mode === 'manual' && (
+                          <span className="text-gray-400 text-xs">Manual</span>
+                        )}
+                        {payment.refundStatus === 'full' && (
+                          <span className="text-gray-400 text-xs">Fully Refunded</span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                       No payments found
                     </td>
                   </tr>
@@ -295,6 +387,74 @@ export default function PaymentsPage() {
                 </button>
                 <button
                   onClick={() => setShowModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Refund Modal */}
+        {showRefundModal && selectedPayment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Process Refund
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Original Amount
+                  </label>
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                    ₹{selectedPayment.amount.toLocaleString()}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Refund Amount
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    max={selectedPayment.amount}
+                    min="1"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter refund amount"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maximum refundable: ₹{selectedPayment.amount.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="mt-6 flex space-x-3">
+                <button
+                  onClick={processRefund}
+                  disabled={isRefunding || !refundAmount}
+                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
+                >
+                  {isRefunding ? 'Processing...' : 'Process Refund'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRefundModal(false);
+                    setSelectedPayment(null);
+                    setRefundAmount('');
+                    setError('');
+                  }}
                   className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                 >
                   Cancel

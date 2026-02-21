@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
     assessment.balance = assessment.amount - assessment.paidAmount;
 
     // Update status
-    if (assessment.balance === 0) {
-      assessment.status = 'Paid';
+    if (assessment.balance <= 0) {
+      assessment.status = 'paid';
     } else if (assessment.paidAmount > 0) {
-      assessment.status = 'Partially Paid';
+      assessment.status = 'partially_paid';
     }
 
     await assessment.save();

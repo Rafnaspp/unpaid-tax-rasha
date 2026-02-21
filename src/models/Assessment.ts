@@ -16,6 +16,11 @@ const AssessmentSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  halfYearIncome: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   slabName: {
     type: String,
     required: true,
@@ -42,8 +47,8 @@ const AssessmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Unpaid', 'Partially Paid', 'Paid'],
-    default: 'Unpaid'
+    enum: ['unpaid', 'partially_paid', 'paid'],
+    default: 'unpaid'
   }
 }, {
   timestamps: true

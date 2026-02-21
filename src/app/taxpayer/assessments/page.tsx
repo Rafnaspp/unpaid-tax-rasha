@@ -16,6 +16,7 @@ interface Assessment {
   balance: number;
   dueDate: string;
   status: 'Unpaid' | 'Partially Paid' | 'Paid';
+  refundedAmount?: number;
 }
 
 export default function TaxpayerAssessmentsPage() {
@@ -206,6 +207,9 @@ export default function TaxpayerAssessmentsPage() {
                     Paid
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Refunded
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Balance
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -230,6 +234,9 @@ export default function TaxpayerAssessmentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       ₹{assessment.paidAmount.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                      ₹{(assessment.refundedAmount || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       ₹{assessment.balance.toLocaleString()}

@@ -9,6 +9,7 @@ interface Assessment {
   taxpayerId: string;
   taxpayerName: string;
   financialYear: string;
+  halfYearIncome: number;
   slabName: string;
   amount: number;
   paidAmount: number;
@@ -23,6 +24,46 @@ interface User {
   businessName: string;
 }
 
+// Kerala Professional Tax Half-Yearly Slabs
+const calculateKeralaTax = (halfYearIncome: number) => {
+  if (halfYearIncome <= 12000) return 0;
+  if (halfYearIncome <= 18000) return 120;
+  if (halfYearIncome <= 30000) return 180;
+  if (halfYearIncome <= 45000) return 300;
+  if (halfYearIncome <= 60000) return 450;
+  if (halfYearIncome <= 75000) return 600;
+  if (halfYearIncome <= 100000) return 750;
+  if (halfYearIncome <= 125000) return 1000;
+  return 1250; // Maximum per half-year (₹2,500 per year)
+};
+
+// Get slab name based on income
+const getKeralaSlabName = (halfYearIncome: number) => {
+  if (halfYearIncome <= 12000) return 'Up to ₹12,000';
+  if (halfYearIncome <= 18000) return '₹12,001 - ₹18,000';
+  if (halfYearIncome <= 30000) return '₹18,001 - ₹30,000';
+  if (halfYearIncome <= 45000) return '₹30,001 - ₹45,000';
+  if (halfYearIncome <= 60000) return '₹45,001 - ₹60,000';
+  if (halfYearIncome <= 75000) return '₹60,001 - ₹75,000';
+  if (halfYearIncome <= 100000) return '₹75,001 - ₹1,00,000';
+  if (halfYearIncome <= 125000) return '₹1,00,001 - ₹1,25,000';
+  return 'Above ₹1,25,000';
+};
+
+// Calculate Kerala due date based on current month
+const getKeralaDueDate = () => {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-11 (0=Jan, 8=Sep)
+  const currentYear = now.getFullYear();
+  
+  // Kerala Professional Tax due dates: March 31 and September 30
+  if (currentMonth >= 3 && currentMonth <= 8) { // April to September
+    return new Date(currentYear, 8, 30); // September 30
+  } else { // October to March
+    return new Date(currentYear, 2, 31); // March 31
+  }
+};
+
 export default function AssessmentsPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -32,6 +73,7 @@ export default function AssessmentsPage() {
   const [formData, setFormData] = useState({
     taxpayerId: '',
     financialYear: '',
+    halfYearIncome: '',
     slabName: '',
     amount: '',
     dueDate: ''
@@ -81,7 +123,7 @@ export default function AssessmentsPage() {
         },
         body: JSON.stringify({
           ...formData,
-          amount: Number(formData.amount),
+          halfYearIncome: Number(formData.halfYearIncome),
         }),
       });
 
@@ -106,6 +148,7 @@ export default function AssessmentsPage() {
     setFormData({
       taxpayerId: assessment.taxpayerId,
       financialYear: assessment.financialYear,
+      halfYearIncome: assessment.halfYearIncome?.toString() || '',
       slabName: assessment.slabName,
       amount: assessment.amount.toString(),
       dueDate: assessment.dueDate
@@ -124,6 +167,7 @@ export default function AssessmentsPage() {
     setFormData({
       taxpayerId: '',
       financialYear: '',
+      halfYearIncome: '',
       slabName: '',
       amount: '',
       dueDate: ''
@@ -317,51 +361,53 @@ export default function AssessmentsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Slab Name
+                      Half-Year Income (₹)
                     </label>
-                    <div className="flex space-x-2">
-                      <input
-                        type="text"
-                        required
-                        value={formData.slabName}
-                        onChange={(e) => setFormData({ ...formData, slabName: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowTaxInfoModal(true)}
-                        className="px-3 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 flex items-center space-x-1 text-sm font-medium"
-                      >
-                        <Info className="h-4 w-4" />
-                        <span>About Tax Slabs</span>
-                      </button>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={formData.halfYearIncome}
+                      onChange={(e) => {
+                        const income = e.target.value;
+                        setFormData({ 
+                          ...formData, 
+                          halfYearIncome: income,
+                          amount: income ? calculateKeralaTax(Number(income)).toString() : '',
+                          slabName: income ? getKeralaSlabName(Number(income)) : '',
+                          dueDate: getKeralaDueDate().toISOString().split('T')[0]
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter half-yearly income"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Calculated Tax Amount (₹)
+                    </label>
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium">
+                      {formData.amount || '0'}
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Amount
+                      Tax Slab
                     </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                      {formData.slabName || 'Will be calculated based on income'}
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Due Date
+                      Due Date (Auto-calculated)
                     </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.dueDate}
-                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                      {formData.dueDate ? new Date(formData.dueDate).toLocaleDateString() : 'Will be calculated based on current month'}
+                    </div>
                   </div>
                 </div>
 

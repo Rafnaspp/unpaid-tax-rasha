@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Verify signature
     const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto
-      .createHmac('sha256', "5gZe2BdBOsulRlVdPlB4w6nF"!)
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || "5gZe2BdBOsulRlVdPlB4w6nF")
       .update(body.toString())
       .digest('hex');
 
@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
     assessment.balance = Number(assessment.amount) - Number(assessment.paidAmount);
 
     // Update status
-    if (assessment.balance === 0) {
-      assessment.status = 'Paid';
+    if (assessment.balance <= 0) {
+      assessment.status = 'paid';
     } else if (assessment.paidAmount > 0) {
-      assessment.status = 'Partially Paid';
+      assessment.status = 'partially_paid';
     }
 
     await assessment.save();
