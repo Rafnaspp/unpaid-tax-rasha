@@ -396,8 +396,18 @@ export default function AssessmentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Tax Slab
                     </label>
-                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
-                      {formData.slabName || 'Will be calculated based on income'}
+                    <div className="flex space-x-2">
+                      <div className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                        {formData.slabName || 'Will be calculated based on income'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowTaxInfoModal(true)}
+                        className="px-3 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 flex items-center space-x-1 text-sm font-medium"
+                      >
+                        <Info className="h-4 w-4" />
+                        <span>View Slabs</span>
+                      </button>
                     </div>
                   </div>
 
@@ -485,35 +495,66 @@ export default function AssessmentsPage() {
                     </div>
 
                     <div>
-                      <p className="font-medium text-gray-900 mb-3">Kerala Professional Tax Slab (Example Structure – Annual Income Based)</p>
+                      <p className="font-medium text-gray-900 mb-3">Kerala Professional Tax Half-Yearly Slabs</p>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-gray-200">
-                              <th className="text-left py-2 font-medium text-gray-900">Annual Income</th>
-                              <th className="text-right py-2 font-medium text-gray-900">Tax per Year</th>
+                              <th className="text-left py-2 font-medium text-gray-900">Half-Year Income (₹)</th>
+                              <th className="text-right py-2 font-medium text-gray-900">Tax Amount (₹)</th>
                             </tr>
                           </thead>
                           <tbody>
                             <tr className="border-b border-gray-100">
-                              <td className="py-2">Up to ₹1,00,000</td>
-                              <td className="text-right py-2 font-medium text-green-600">Nil</td>
+                              <td className="py-2">Up to 12,000</td>
+                              <td className="text-right py-2 font-medium text-green-600">0</td>
                             </tr>
                             <tr className="border-b border-gray-100">
-                              <td className="py-2">₹1,00,001 – ₹1,25,000</td>
-                              <td className="text-right py-2">₹750 per year</td>
+                              <td className="py-2">12,001 – 18,000</td>
+                              <td className="text-right py-2">120</td>
                             </tr>
                             <tr className="border-b border-gray-100">
-                              <td className="py-2">₹1,25,001 – ₹2,00,000</td>
-                              <td className="text-right py-2">₹1,250 per year</td>
+                              <td className="py-2">18,001 – 30,000</td>
+                              <td className="text-right py-2">180</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">30,001 – 45,000</td>
+                              <td className="text-right py-2">300</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">45,001 – 60,000</td>
+                              <td className="text-right py-2">450</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">60,001 – 75,000</td>
+                              <td className="text-right py-2">600</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">75,001 – 1,00,000</td>
+                              <td className="text-right py-2">750</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">1,00,001 – 1,25,000</td>
+                              <td className="text-right py-2">1,000</td>
                             </tr>
                             <tr>
-                              <td className="py-2">Above ₹2,00,000</td>
-                              <td className="text-right py-2">₹2,500 per year</td>
+                              <td className="py-2">Above 1,25,000</td>
+                              <td className="text-right py-2 font-medium text-red-600">1,250</td>
                             </tr>
                           </tbody>
                         </table>
                       </div>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-gray-900 mb-2">Important Notes</p>
+                      <ul className="list-disc list-inside space-y-1 ml-4 text-sm text-gray-600">
+                        <li>Professional tax is collected half-yearly in Kerala</li>
+                        <li>Maximum tax per half-year: ₹1,250</li>
+                        <li>Maximum tax per year: ₹2,500</li>
+                        <li>Due dates: March 31 and September 30</li>
+                        <li>Applicable to all professionals and business persons</li>
+                      </ul>
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
