@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Info } from 'lucide-react';
 
 interface Assessment {
   _id: string;
@@ -27,6 +27,7 @@ export default function AssessmentsPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showTaxInfoModal, setShowTaxInfoModal] = useState(false);
   const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
   const [formData, setFormData] = useState({
     taxpayerId: '',
@@ -279,7 +280,7 @@ export default function AssessmentsPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {editingAssessment ? 'Edit Assessment' : 'Add New Assessment'}
               </h3>
-              
+
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
@@ -300,7 +301,7 @@ export default function AssessmentsPage() {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Financial Year
@@ -313,20 +314,30 @@ export default function AssessmentsPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Slab Name
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.slabName}
-                      onChange={(e) => setFormData({ ...formData, slabName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        required
+                        value={formData.slabName}
+                        onChange={(e) => setFormData({ ...formData, slabName: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTaxInfoModal(true)}
+                        className="px-3 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 flex items-center space-x-1 text-sm font-medium"
+                      >
+                        <Info className="h-4 w-4" />
+                        <span>About Tax Slabs</span>
+                      </button>
+                    </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Amount
@@ -339,7 +350,7 @@ export default function AssessmentsPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Due Date
@@ -377,6 +388,100 @@ export default function AssessmentsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Tax Information Modal */}
+        {showTaxInfoModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Professional Tax Slabs – Kerala
+                </h3>
+                <button
+                  onClick={() => setShowTaxInfoModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="prose prose-sm max-w-none">
+                  <div className="space-y-4 text-sm text-gray-700">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-2">Overview</p>
+                      <p>
+                        Professional Tax in Kerala is governed by the Kerala Municipality Act and Kerala Panchayat Raj Act.
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-gray-900 mb-2">Applicable to</p>
+                      <ul className="list-disc list-inside space-y-1 ml-4">
+                        <li>Salaried employees</li>
+                        <li>Self-employed professionals</li>
+                        <li>Businesses and traders</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-gray-900 mb-2">Maximum Tax</p>
+                      <p>
+                        The maximum professional tax that can be collected per person per year is <strong>₹2,500</strong>.
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-gray-900 mb-3">Kerala Professional Tax Slab (Example Structure – Annual Income Based)</p>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-2 font-medium text-gray-900">Annual Income</th>
+                              <th className="text-right py-2 font-medium text-gray-900">Tax per Year</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">Up to ₹1,00,000</td>
+                              <td className="text-right py-2 font-medium text-green-600">Nil</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">₹1,00,001 – ₹1,25,000</td>
+                              <td className="text-right py-2">₹750 per year</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                              <td className="py-2">₹1,25,001 – ₹2,00,000</td>
+                              <td className="text-right py-2">₹1,250 per year</td>
+                            </tr>
+                            <tr>
+                              <td className="py-2">Above ₹2,00,000</td>
+                              <td className="text-right py-2">₹2,500 per year</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <p className="font-medium text-amber-800 mb-2">Important Notes:</p>
+                      <ul className="list-disc list-inside space-y-1 text-amber-700 text-xs ml-4">
+                        <li>Slabs may vary slightly depending on municipality or local body</li>
+                        <li>Tax is generally collected half-yearly</li>
+                        <li>Admin should configure slabs as per the applicable local authority rules</li>
+                        <li>This popup is informational only - slabs should be configured in the system</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
