@@ -13,7 +13,7 @@ interface RazorpayOptions {
   };
   prefill?: {
     name?: string;
-    email?: string;
+    username?: string;
     contact?: string;
   };
   theme?: {

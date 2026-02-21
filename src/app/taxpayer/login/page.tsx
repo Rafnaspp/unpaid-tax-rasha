@@ -26,7 +26,7 @@ export default function TaxpayerLoginPage() {
     setIsLoading(true);
 
     try {
-      const success = login(username, password);
+      const success = await login(username, password);
       if (success) {
         router.push('/taxpayer/dashboard');
       } else {
@@ -116,6 +116,15 @@ export default function TaxpayerLoginPage() {
                   <span className="text-teal-600 font-mono">tax123</span>
                 </div>
               </div>
+            </div>
+            
+            <div className="mt-6 text-center">
+              <a
+                href="/auth/simple-forgot-password"
+                className="text-sm text-teal-600 hover:text-teal-500 font-medium transition-colors"
+              >
+                Forgot Password?
+              </a>
             </div>
           </div>
         </div>

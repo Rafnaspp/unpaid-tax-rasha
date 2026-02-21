@@ -8,7 +8,7 @@ export interface User {
 export interface Taxpayer {
   id: string;
   name: string;
-  email: string;
+  username: string;
   phone: string;
   address: string;
   profession: string;
