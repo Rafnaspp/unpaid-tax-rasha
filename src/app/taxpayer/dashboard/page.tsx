@@ -8,7 +8,8 @@ import {
   Calendar,
   TrendingUp,
   AlertCircle,
-  CreditCard
+  CreditCard,
+  Bell
 } from 'lucide-react';
 
 interface Assessment {
@@ -37,10 +38,24 @@ interface User {
   ward: string;
 }
 
+interface Reminder {
+  _id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  createdBy: string;
+  assessmentId?: {
+    _id: string;
+    financialYear: string;
+    slabName: string;
+  };
+}
+
 export default function TaxpayerDashboard() {
   const { user } = useAuth();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [userInfo, setUserInfo] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,6 +83,13 @@ export default function TaxpayerDashboard() {
       const paymentsData = await paymentsResponse.json();
       if (paymentsData.success) {
         setPayments(paymentsData.payments || []);
+      }
+
+      // Fetch user reminders
+      const remindersResponse = await fetch(`/api/user/reminders?userId=${user?.id}`);
+      const remindersData = await remindersResponse.json();
+      if (remindersData.success) {
+        setReminders(remindersData.reminders || []);
       }
 
       // Set user info from auth context
@@ -216,7 +238,7 @@ export default function TaxpayerDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Recent Assessments */}
           <div className="bg-white rounded-2xl shadow-lg border border-slate-100">
             <div className="px-6 py-4 border-b border-slate-100">
@@ -225,7 +247,7 @@ export default function TaxpayerDashboard() {
             <div className="p-6">
               {assessments.length > 0 ? (
                 <div className="space-y-4">
-                  {assessments.slice(0, 4).map((assessment) => (
+                  {assessments.slice(0, 3).map((assessment) => (
                     <div key={assessment._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                       <div>
                         <p className="font-medium text-slate-900">{assessment.financialYear}</p>
@@ -262,7 +284,7 @@ export default function TaxpayerDashboard() {
             <div className="p-6">
               {payments.length > 0 ? (
                 <div className="space-y-4">
-                  {payments.slice(0, 4).map((payment) => (
+                  {payments.slice(0, 3).map((payment) => (
                     <div key={payment._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                       <div>
                         <p className="font-medium text-slate-900">#{payment.receiptNumber}</p>
@@ -279,6 +301,44 @@ export default function TaxpayerDashboard() {
                 </div>
               ) : (
                 <p className="text-gray-500 text-center py-4">No payments found</p>
+              )}
+            </div>
+          </div>
+
+          {/* Reminders */}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                <Bell className="h-5 w-5 mr-2 text-teal-600" />
+                Reminders
+              </h3>
+            </div>
+            <div className="p-6">
+              {reminders.length > 0 ? (
+                <div className="space-y-4">
+                  {reminders.slice(0, 3).map((reminder) => (
+                    <div key={reminder._id} className="p-4 bg-teal-50 rounded-xl border border-teal-100">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900 mb-1">{reminder.title}</p>
+                          <p className="text-sm text-slate-600 mb-2">{reminder.message}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(reminder.createdAt).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No reminders available</p>
+                </div>
               )}
             </div>
           </div>

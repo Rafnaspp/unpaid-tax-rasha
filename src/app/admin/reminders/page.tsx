@@ -9,16 +9,17 @@ interface Reminder {
   taxpayerId: {
     _id: string;
     name: string;
-    businessName: string;
-  } | null;
-  assessmentId: {
+    businessName?: string;
+  };
+  assessmentId?: {
     _id: string;
     financialYear: string;
-    amount: number;
-  } | null;
+    slabName: string;
+  };
+  title: string;
   message: string;
-  sentDate: string;
-  status: 'sent' | 'pending';
+  createdAt: string;
+  createdBy: string;
 }
 
 export default function RemindersPage() {
@@ -27,6 +28,7 @@ export default function RemindersPage() {
   const [formData, setFormData] = useState({
     taxpayerId: '',
     assessmentId: '',
+    title: '',
     message: ''
   });
   const [users, setUsers] = useState<any[]>([]);
@@ -82,7 +84,7 @@ export default function RemindersPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/admin/reminder', {
+      const response = await fetch('/api/admin/reminders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,14 +112,13 @@ export default function RemindersPage() {
     setFormData({
       taxpayerId: '',
       assessmentId: '',
+      title: '',
       message: ''
     });
     setError('');
   };
 
   const totalReminders = reminders.length;
-  const sentReminders = reminders.filter(r => r?.status === 'sent').length;
-  const pendingReminders = reminders.filter(r => r?.status === 'pending').length;
 
   if (isLoading && reminders.length === 0) {
     return (
@@ -147,7 +148,7 @@ export default function RemindersPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
@@ -159,36 +160,62 @@ export default function RemindersPage() {
               </div>
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-                <Calendar className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Sent</p>
-                <p className="text-2xl font-bold text-gray-900">{sentReminders}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-yellow-100 rounded-lg p-3">
-                <Users className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingReminders}</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Reminders Table */}
         <div className="bg-white shadow rounded-lg">
-          <div className="overflow-hidden">
-
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">All Reminders</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Taxpayer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Title
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Message
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created By
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reminders.map((reminder) => (
+                  <tr key={reminder._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {reminder.taxpayerId?.name}
+                      {reminder.taxpayerId?.businessName && ` (${reminder.taxpayerId.businessName})`}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {reminder.title}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {reminder.message}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(reminder.createdAt).toLocaleDateString('en-IN')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {reminder.createdBy}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {reminders.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No reminders found</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -202,18 +229,18 @@ export default function RemindersPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Taxpayer
+                      Taxpayer *
                     </label>
                     <select
                       required
                       value={formData.taxpayerId}
-                      onChange={(e) => setFormData({ ...formData, taxpayerId: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, taxpayerId: e.target.value, assessmentId: '' })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select Taxpayer</option>
                       {users.map((user) => (
                         <option key={user._id} value={user._id}>
-                          {user.name} - {user.businessName}
+                          {user.name} {user.businessName && `(${user.businessName})`}
                         </option>
                       ))}
                     </select>
@@ -221,20 +248,20 @@ export default function RemindersPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Assessment
+                      Assessment (Optional)
                     </label>
                     <select
-                      required
                       value={formData.assessmentId}
                       onChange={(e) => setFormData({ ...formData, assessmentId: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={!formData.taxpayerId}
                     >
                       <option value="">Select Assessment</option>
                       {assessments
-                        .filter(a => a.taxpayerId === formData.taxpayerId)
+                        .filter(a => a.taxpayerId?._id === formData.taxpayerId)
                         .map((assessment) => (
                           <option key={assessment._id} value={assessment._id}>
-                            {assessment.financialYear} - {assessment.amount}
+                            {assessment.financialYear} - {assessment.slabName || assessment.amount}
                           </option>
                         ))}
                     </select>
@@ -242,7 +269,21 @@ export default function RemindersPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Message
+                      Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter reminder title"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Message *
                     </label>
                     <textarea
                       required

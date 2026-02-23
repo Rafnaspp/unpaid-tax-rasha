@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const reminders = await Reminder.find({ taxpayerId: userId })
-      .populate('assessmentId', 'financialYear amount')
+      .populate('assessmentId', 'financialYear slabName')
       .sort({ createdAt: -1 });
 
     return NextResponse.json({

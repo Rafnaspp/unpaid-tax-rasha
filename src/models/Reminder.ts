@@ -9,19 +9,24 @@ const ReminderSchema = new mongoose.Schema({
   assessmentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assessment',
-    required: true
+    required: false
   },
-  reminderDate: {
-    type: Date,
+  title: {
+    type: String,
     required: true
   },
   message: {
     type: String,
-    required: true,
-    trim: true
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  createdBy: {
+    type: String,
+    default: 'Admin'
   }
-}, {
-  timestamps: true
 });
 
 export default mongoose.models.Reminder || mongoose.model('Reminder', ReminderSchema);
