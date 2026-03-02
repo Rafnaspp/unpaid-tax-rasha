@@ -287,9 +287,8 @@ export default function TaxpayerAssessmentsPage() {
                     Payment Amount
                   </label>
                   <input
-                    type="number"
                     value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    // onChange={(e) => setPaymentAmount(e.target.value)}
                     max={selectedAssessment.balance}
                     min="1"
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
