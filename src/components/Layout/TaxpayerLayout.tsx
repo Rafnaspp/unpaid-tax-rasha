@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { AuthGuard } from '@/components/AuthGuard';
 import {
   Home,
   FileText,
@@ -88,11 +89,13 @@ const TaxpayerHeader = () => {
 
 export default function TaxpayerLayout({ children }: TaxpayerLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50">
-      <TaxpayerHeader />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
-    </div>
+    <AuthGuard requiredRole="taxpayer">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50">
+        <TaxpayerHeader />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+      </div>
+    </AuthGuard>
   );
 }

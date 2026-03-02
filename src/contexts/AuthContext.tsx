@@ -32,9 +32,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    // Check localStorage on mount
-    const storedUser = localStorage.getItem('user');
-    const storedRole = localStorage.getItem('role');
+    // Check current path to determine which user type to check for
+    const currentPath = window.location.pathname;
+    const isAdminRoute = currentPath.startsWith('/admin');
+    const isTaxpayerRoute = currentPath.startsWith('/taxpayer');
+    
+    // Check localStorage based on current route
+    let storedUser = null;
+    let storedRole = null;
+    
+    if (isAdminRoute) {
+      // Check for admin info
+      const adminInfo = localStorage.getItem('admin-info');
+      if (adminInfo) {
+        storedUser = adminInfo;
+        storedRole = 'admin';
+      }
+    } else if (isTaxpayerRoute) {
+      // Check for taxpayer info
+      const taxpayerInfo = localStorage.getItem('taxpayer-info');
+      if (taxpayerInfo) {
+        storedUser = taxpayerInfo;
+        storedRole = 'taxpayer';
+      }
+    } else {
+      // For other routes, check general user info
+      storedUser = localStorage.getItem('user');
+      storedRole = localStorage.getItem('role');
+    }
     
     if (storedUser && storedRole) {
       try {
@@ -46,8 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (error) {
         console.error('Error parsing stored user:', error);
+        // Clear invalid data
         localStorage.removeItem('user');
         localStorage.removeItem('role');
+        localStorage.removeItem('admin-info');
+        localStorage.removeItem('taxpayer-info');
         setState({
           user: null,
           isAuthenticated: false,
@@ -81,6 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (data.success) {
           const user = data.user;
+          
+          // Store admin info in localStorage
+          localStorage.setItem('admin-info', JSON.stringify(user));
           localStorage.setItem('user', JSON.stringify(user));
           localStorage.setItem('role', user.role);
           
@@ -105,6 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (data.success) {
           const user = data.user;
+          
+          // Store taxpayer info in localStorage
+          localStorage.setItem('taxpayer-info', JSON.stringify(user));
           localStorage.setItem('user', JSON.stringify(user));
           localStorage.setItem('role', user.role);
           
@@ -127,8 +161,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    // Clear all localStorage keys
     localStorage.removeItem('user');
     localStorage.removeItem('role');
+    localStorage.removeItem('admin-info');
+    localStorage.removeItem('taxpayer-info');
+    
+    // Clear cookies (in case they exist)
+    document.cookie = 'admin-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    document.cookie = 'user-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    
     setState({
       user: null,
       isAuthenticated: false,

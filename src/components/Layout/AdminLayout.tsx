@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { AuthGuard } from '@/components/AuthGuard';
 import {
   // BarChart3,
   Users,
@@ -115,14 +116,16 @@ const AdminHeader = () => {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <AdminSidebar />
-      <div className="ml-64">
-        <AdminHeader />
-        <main className="p-6">
-          {children}
-        </main>
+    <AuthGuard requiredRole="admin">
+      <div className="min-h-screen bg-slate-50">
+        <AdminSidebar />
+        <div className="ml-64">
+          <AdminHeader />
+          <main className="p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }
