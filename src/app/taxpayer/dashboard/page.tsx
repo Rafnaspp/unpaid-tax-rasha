@@ -38,24 +38,11 @@ interface User {
   ward: string;
 }
 
-interface Reminder {
-  _id: string;
-  title: string;
-  message: string;
-  createdAt: string;
-  createdBy: string;
-  assessmentId?: {
-    _id: string;
-    financialYear: string;
-    slabName: string;
-  };
-}
 
 export default function TaxpayerDashboard() {
   const { user } = useAuth();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [userInfo, setUserInfo] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -85,12 +72,6 @@ export default function TaxpayerDashboard() {
         setPayments(paymentsData.payments || []);
       }
 
-      // Fetch user reminders
-      const remindersResponse = await fetch(`/api/user/reminders?userId=${user?.id}`);
-      const remindersData = await remindersResponse.json();
-      if (remindersData.success) {
-        setReminders(remindersData.reminders || []);
-      }
 
       // Set user info from auth context
       setUserInfo({
@@ -126,6 +107,22 @@ export default function TaxpayerDashboard() {
   const overdueAssessments = assessments.filter(
     a => a?.status === 'unpaid' && a?.dueDate && new Date(a.dueDate) < new Date()
   );
+
+  // Generate reminders from assessments due within a month
+  const generateAssessmentReminders = () => {
+    const today = new Date();
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setMonth(today.getMonth() + 1);
+    
+    return assessments.filter(assessment => {
+      if (!assessment.dueDate || assessment.status === 'Paid') return false;
+      
+      const dueDate = new Date(assessment.dueDate);
+      return dueDate >= today && dueDate <= oneMonthFromNow;
+    });
+  };
+  
+  const assessmentReminders = generateAssessmentReminders();
 
   const nextDueAssessment = assessments
     .filter(a => a?.balance > 0)
@@ -314,20 +311,22 @@ export default function TaxpayerDashboard() {
               </h3>
             </div>
             <div className="p-6">
-              {reminders.length > 0 ? (
+              {assessmentReminders.length > 0 ? (
                 <div className="space-y-4">
-                  {reminders.slice(0, 3).map((reminder) => (
-                    <div key={reminder._id} className="p-4 bg-teal-50 rounded-xl border border-teal-100">
+                  {assessmentReminders.map((assessment) => (
+                    <div key={assessment._id} className="p-4 bg-teal-50 rounded-xl border border-teal-100">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-medium text-slate-900 mb-1">{reminder.title}</p>
-                          <p className="text-sm text-slate-600 mb-2">{reminder.message}</p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(reminder.createdAt).toLocaleDateString('en-IN', {
+                          <p className="font-medium text-slate-900 mb-1">Assessment Due Reminder</p>
+                          <p className="text-sm text-slate-600 mb-2">
+                            Your assessment for {assessment.financialYear} ({assessment.slabName}) is due on {new Date(assessment.dueDate).toLocaleDateString('en-IN', {
                               year: 'numeric',
-                              month: 'short',
+                              month: 'long',
                               day: 'numeric'
                             })}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Balance: ₹{(assessment.balance || 0).toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -337,7 +336,7 @@ export default function TaxpayerDashboard() {
               ) : (
                 <div className="text-center py-4">
                   <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No reminders available</p>
+                  <p className="text-gray-500">No assessments due within a month</p>
                 </div>
               )}
             </div>
